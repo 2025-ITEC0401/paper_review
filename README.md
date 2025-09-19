@@ -27,6 +27,7 @@
 6. Transfer learning
 
 ## Benchmark Environment (Testbed Setup)
-- Intel Core i7-10700 @2.9GHz (8 Physical core / L1 Cache 64KB, L2 Cache 256KB, )
-- DDR4 32GB PC4-2666MHz (32GB x 1EA)
-- NVIDIA GeForce RTX3080 10GB
+- Intel Core i7-9700K @3.6GHz (8 Physical core / L1 Cache 64KB, L2 Cache 256KB per Core)
+- DDR4 64GB
+- NVIDIA GeForce RTX3090 24GB
+- NVIDIA GeForce RTX3080Ti 12GB
