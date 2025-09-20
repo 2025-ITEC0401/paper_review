@@ -1,0 +1,95 @@
+name: Create Jira issue
+on:
+  issues:
+    types:
+      - opened
+jobs:
+  create-issue:
+    name: Create Jira issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login
+        uses: atlassian/gajira-login@v3
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+
+      - name: Checkout main code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Issue Parser
+        uses: stefanbuck/github-issue-praser@v3
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/issue-form.yml
+
+      - name: Log Issue Parser
+        run: |
+          echo '${{ steps.issue-parser.outputs.jsonString }}'
+
+      - name: Convert markdown to Jira Syntax
+        uses: peter-evans/jira2md@v1
+        id: md2jira
+        with:
+          input-text: |
+            ### Github Issue Link
+            - ${{ github.event.issue.html_url }}
+
+            ${{ github.event.issue.body }}
+          mode: md2jira
+
+      - name: Create Task Issue
+        id: create
+        if: ${{ steps.issue-parser.outputs.parentKey == '' }}
+        uses: atlassian/gajira-create@v3
+        with:
+          project: KNU
+          issuetype: "Task"
+          summary: "${{ github.event.issue.title }}"
+          description: "${{ steps.md2jira.outputs.output-text }}"
+    
+      - name: Create Sub-task Issue
+        id: create-subtask
+        if: ${{ steps.issue-parser.outputs.parentKey != '' }}
+        uses: atlassian/gajira-create@v3
+        with:
+          project: ITEC0401
+          issuetype: "Sub-task"
+          summary: "${{ github.event.issue.title }}"
+          description: "${{ steps.md2jira.outputs.output-text }}"
+          fields: |
+            {
+              "parent": {
+                "key": "${{ steps.issue-parser.outputs.parentKey }}"
+              }
+            }
+
+
+      - name: Log created issue
+        run: |
+            if [[ "${{ steps.create.outputs.parentKey }}" != "" ]]; then
+              echo "Jira Issue ${{ steps.create.outputs.issue }} was created as Task"
+            else
+              echo "Jira Issue ${{ steps.issue-parser.outputs.parentKey }}/${{ steps.create-subtask.outputs.issue }} was created as Sub-task"
+            fi
+
+      - name: Checkout develop code
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create branch with Ticket number
+        run: |
+          git checkout -b ${{ steps.create.outputs.issue }}
+          git push origin ${{ steps.create.outputs.issue }}
+
+      - name: Update issue title
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "update-issue"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}"
