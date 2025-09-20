@@ -1,15 +1,15 @@
 ### [이슈-키] 타입: 커밋 메시지
 
-### Example: [KNU-000] add: 회원가입 기능 추가
+### Example: [KNU-000] Add: 회원가입 기능 추가
 
 ### Types:
-# feat: 새로운 기능 추가
-# fix: 버그 수정
-# docs: 문서 수정
-# style: 코드 스타일 변경
-# refactor: 코드 리팩토링
-# test: 테스트 코드 추가/수정
-# chore: 빌드, 설정 등 부수적인 변경
+# Feat: 새로운 기능 추가
+# Fix: 버그 수정
+# Docs: 문서 수정
+# Style: 코드 스타일 변경
+# Refactor: 코드 리팩토링
+# Test: 테스트 코드 추가/수정
+# Chore: 빌드, 설정 등 부수적인 변경
 
 # 적용 방법
 # git config --global commit.template .git-commit-template
