@@ -46,7 +46,7 @@ jobs:
         if: ${{ steps.issue-parser.outputs.parentKey == '' }}
         uses: atlassian/gajira-create@v3
         with:
-          project: ITEC0401
+          project: KNU
           issuetype: "Task"
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
