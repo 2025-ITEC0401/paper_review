@@ -1,6 +1,6 @@
-### [이슈-키] 타입: 커밋 메시지
+[KNU-000] 타입: 커밋 메시지
 
-### Example: [KNU-000] Add: 회원가입 기능 추가
+### Example: [KNU-000] Feat: 회원가입 기능 추가
 
 ### Types:
 # Feat: 새로운 기능 추가
@@ -12,4 +12,4 @@
 # Chore: 빌드, 설정 등 부수적인 변경
 
 # 적용 방법
-# git config --global commit.template .git-commit-template
+# git config commit.template <Absolute Path of This Repository>/.git-commit-template
