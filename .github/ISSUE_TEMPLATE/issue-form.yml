@@ -4,15 +4,6 @@ labels: [order]
 title: '이슈 이름을 작성해주세요'
 body:
   - type: input
-    id: parentKey
-    attributes:
-      label: '상위 작업 Ticket Number'
-      description: '하위 작업으로 만드시려면 상위 작업의 Ticket Number를 기입해주세요'
-      placeholder: 'KNU-000'
-    validations:
-      required: false
-
-  - type: input
     id: description
     attributes:
       label: '이슈 내용(Description)'

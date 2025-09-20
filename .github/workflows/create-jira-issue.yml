@@ -43,38 +43,17 @@ jobs:
 
       - name: Create Task Issue
         id: create
-        if: ${{ steps.issue-parser.outputs.parentKey == '' }}
         uses: atlassian/gajira-create@v3
         with:
           project: KNU
           issuetype: "Task"
           summary: "${{ github.event.issue.title }}"
           description: "${{ steps.md2jira.outputs.output-text }}"
-    
-      - name: Create Sub-task Issue
-        id: create-subtask
-        if: ${{ steps.issue-parser.outputs.parentKey != '' }}
-        uses: atlassian/gajira-create@v3
-        with:
-          project: ITEC0401
-          issuetype: "Sub-task"
-          summary: "${{ github.event.issue.title }}"
-          description: "${{ steps.md2jira.outputs.output-text }}"
-          fields: |
-            {
-              "parent": {
-                "key": "${{ steps.issue-parser.outputs.parentKey }}"
-              }
-            }
 
 
       - name: Log created issue
         run: |
-            if [[ "${{ steps.create.outputs.parentKey }}" != "" ]]; then
-              echo "Jira Issue ${{ steps.create.outputs.issue }} was created as Task"
-            else
-              echo "Jira Issue ${{ steps.issue-parser.outputs.parentKey }}/${{ steps.create-subtask.outputs.issue }} was created as Sub-task"
-            fi
+            echo "Jira Issue ${{ steps.create.outputs.issue }} was created as Task"
 
       - name: Checkout develop code
         uses: actions/checkout@v4
