@@ -26,7 +26,7 @@ for data_path in "${data_paths[@]}"; do
                 log_path="./Results/Fcst/${data_path}/"
                 mkdir -p $log_path
                 log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dn${dropout_n}_bs${batch_size}_e${epochs}.log"
-                nohup python3 train.py \
+                python3 train.py \
                   --data_path $data_path \
                   --device $device \
                   --batch_size $batch_size \
@@ -42,7 +42,7 @@ for data_path in "${data_paths[@]}"; do
                   --e_layer $e_layer\
                   --model_name $model_name \
                   --num_workers 10 \
-                  --d_llm $d_llm > $log_file &
+                  --d_llm $d_llm > $log_file
               done
             done
           done
