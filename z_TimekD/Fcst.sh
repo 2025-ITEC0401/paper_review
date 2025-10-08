@@ -3,14 +3,14 @@ export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
 export CUDA_LAUNCH_BLOCKING=1
 
 device="cuda:0"
-seq_lens=(96)
-pred_lens=(24)
 learning_rates=(1e-4 1e-5)
+batch_sizes=(16)
+seq_lens=(96)     # Input Length
+pred_lens=(24 36 48 96 192) # Output Length
 channels=(64)
 d_llm=(768)
 e_layers=(2)
 dropout_ns=(0.5)
-batch_sizes=(16)
 model_name="gpt2"
 data_paths=("ETTm1" "ETTm2" "ETTh1" "ETTh2")
 epochs=(100)
