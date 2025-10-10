@@ -2,7 +2,8 @@
 export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
 export CUDA_LAUNCH_BLOCKING=1
 
-data_paths=("ETTh1" "ETTh2")
+# data_paths=("ETTh1" "ETTh2")
+data_paths=("exchange_rate")
 divides=("train" "val") 
 device="cuda:1"
 num_nodes=7
