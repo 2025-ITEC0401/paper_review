@@ -1,0 +1,466 @@
+Namespace(att_w=0.01, batch_size=16, channel=64, d_llm=768, data_path='ETTm1', device='cuda:0', dropout_n=0.5, e_layer=2, epochs=100, es_patience=50, fcst_w=1, feature_w=0.01, head=4, lrate=1e-05, model_name='gpt2', num_nodes=7, num_workers=10, pred_len=36, recon_w=0.5, save='./logs/2025-10-09-16:35:39-', seed=6666, seq_len=96, weight_decay=0.001)
+The number of trainable parameters: 1713352
+The number of parameters: 1713352
+Dual(
+  (normalize_layers): Normalize()
+  (length_to_feature): Linear(in_features=96, out_features=64, bias=True)
+  (token_to_feature): Linear(in_features=768, out_features=64, bias=True)
+  (ts_encoder): Encoder(
+    (attn_layers): ModuleList(
+      (0-1): 2 x EncoderLayer(
+        (attention): AttentionLayer(
+          (inner_attention): FullAttention(
+            (dropout): Dropout(p=0.5, inplace=False)
+          )
+          (query_projection): Linear(in_features=64, out_features=64, bias=True)
+          (key_projection): Linear(in_features=64, out_features=64, bias=True)
+          (value_projection): Linear(in_features=64, out_features=64, bias=True)
+          (out_projection): Linear(in_features=64, out_features=64, bias=True)
+        )
+        (conv1): Conv1d(64, 3072, kernel_size=(1,), stride=(1,))
+        (conv2): Conv1d(3072, 64, kernel_size=(1,), stride=(1,))
+        (norm1): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+        (dropout): Dropout(p=0.5, inplace=False)
+      )
+    )
+    (norm): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+  )
+  (prompt_encoder): Encoder(
+    (attn_layers): ModuleList(
+      (0-1): 2 x EncoderLayer(
+        (attention): AttentionLayer(
+          (inner_attention): FullAttention(
+            (dropout): Dropout(p=0.5, inplace=False)
+          )
+          (query_projection): Linear(in_features=64, out_features=64, bias=True)
+          (key_projection): Linear(in_features=64, out_features=64, bias=True)
+          (value_projection): Linear(in_features=64, out_features=64, bias=True)
+          (out_projection): Linear(in_features=64, out_features=64, bias=True)
+        )
+        (conv1): Conv1d(64, 3072, kernel_size=(1,), stride=(1,))
+        (conv2): Conv1d(3072, 64, kernel_size=(1,), stride=(1,))
+        (norm1): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+        (dropout): Dropout(p=0.5, inplace=False)
+      )
+    )
+    (norm): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+  )
+  (ts_proj): Linear(in_features=64, out_features=36, bias=True)
+  (prompt_proj): Linear(in_features=64, out_features=36, bias=True)
+)
+Start training...
+Epoch: 001, Training Time: 33.7324 secs
+Epoch: 001, Validation Time: 4.3884 secs
+-----------------------
+Epoch: 001, Train Loss: 0.3916, Train MSE: 0.3917, Train MAE: 0.4353
+Epoch: 001, Valid Loss: 0.4239, Valid MSE: 0.3889, Valid MAE: 0.4133
+###Update tasks appear###
+Updating! Valid Loss:0.4239, epoch:  1
+Epoch: 002, Training Time: 33.3818 secs
+Epoch: 002, Validation Time: 4.2932 secs
+-----------------------
+Epoch: 002, Train Loss: 0.3257, Train MSE: 0.3393, Train MAE: 0.3973
+Epoch: 002, Valid Loss: 0.3943, Valid MSE: 0.3432, Valid MAE: 0.3842
+###Update tasks appear###
+Updating! Valid Loss:0.3943, epoch:  2
+Epoch: 003, Training Time: 33.7195 secs
+Epoch: 003, Validation Time: 4.3250 secs
+-----------------------
+Epoch: 003, Train Loss: 0.2900, Train MSE: 0.3183, Train MAE: 0.3819
+Epoch: 003, Valid Loss: 0.3882, Valid MSE: 0.3252, Valid MAE: 0.3723
+###Update tasks appear###
+Updating! Valid Loss:0.3882, epoch:  3
+Epoch: 004, Training Time: 33.7641 secs
+Epoch: 004, Validation Time: 4.4201 secs
+-----------------------
+Epoch: 004, Train Loss: 0.2684, Train MSE: 0.3064, Train MAE: 0.3731
+Epoch: 004, Valid Loss: 0.3880, Valid MSE: 0.3164, Valid MAE: 0.3665
+###Update tasks appear###
+Updating! Valid Loss:0.3880, epoch:  4
+Epoch: 005, Training Time: 33.5109 secs
+Epoch: 005, Validation Time: 4.3780 secs
+-----------------------
+Epoch: 005, Train Loss: 0.2532, Train MSE: 0.2985, Train MAE: 0.3671
+Epoch: 005, Valid Loss: 0.3842, Valid MSE: 0.3118, Valid MAE: 0.3638
+###Update tasks appear###
+Updating! Valid Loss:0.3842, epoch:  5
+Epoch: 006, Training Time: 33.4058 secs
+Epoch: 006, Validation Time: 4.2370 secs
+-----------------------
+Epoch: 006, Train Loss: 0.2419, Train MSE: 0.2927, Train MAE: 0.3627
+Epoch: 006, Valid Loss: 0.3823, Valid MSE: 0.3091, Valid MAE: 0.3623
+###Update tasks appear###
+Updating! Valid Loss:0.3823, epoch:  6
+Epoch: 007, Training Time: 33.7766 secs
+Epoch: 007, Validation Time: 4.4388 secs
+-----------------------
+Epoch: 007, Train Loss: 0.2331, Train MSE: 0.2881, Train MAE: 0.3591
+Epoch: 007, Valid Loss: 0.3786, Valid MSE: 0.3070, Valid MAE: 0.3609
+###Update tasks appear###
+Updating! Valid Loss:0.3786, epoch:  7
+Epoch: 008, Training Time: 33.1600 secs
+Epoch: 008, Validation Time: 4.2860 secs
+-----------------------
+Epoch: 008, Train Loss: 0.2258, Train MSE: 0.2840, Train MAE: 0.3561
+Epoch: 008, Valid Loss: 0.3766, Valid MSE: 0.3065, Valid MAE: 0.3609
+###Update tasks appear###
+Updating! Valid Loss:0.3766, epoch:  8
+Epoch: 009, Training Time: 33.4885 secs
+Epoch: 009, Validation Time: 4.2406 secs
+-----------------------
+Epoch: 009, Train Loss: 0.2197, Train MSE: 0.2808, Train MAE: 0.3535
+Epoch: 009, Valid Loss: 0.3755, Valid MSE: 0.3051, Valid MAE: 0.3598
+###Update tasks appear###
+Updating! Valid Loss:0.3755, epoch:  9
+Epoch: 010, Training Time: 33.8591 secs
+Epoch: 010, Validation Time: 4.4725 secs
+-----------------------
+Epoch: 010, Train Loss: 0.2146, Train MSE: 0.2782, Train MAE: 0.3515
+Epoch: 010, Valid Loss: 0.3738, Valid MSE: 0.3056, Valid MAE: 0.3605
+###Update tasks appear###
+Updating! Valid Loss:0.3738, epoch:  10
+Epoch: 011, Training Time: 33.7973 secs
+Epoch: 011, Validation Time: 4.3271 secs
+-----------------------
+Epoch: 011, Train Loss: 0.2099, Train MSE: 0.2752, Train MAE: 0.3494
+Epoch: 011, Valid Loss: 0.3734, Valid MSE: 0.3055, Valid MAE: 0.3603
+###Update tasks appear###
+Test low! Updating! Test MSE: 0.2865, Test MAE: 0.3360, Test low! Updating! Valid Loss: 0.3734, epoch:  11
+Epoch: 012, Training Time: 34.1275 secs
+Epoch: 012, Validation Time: 4.2405 secs
+-----------------------
+Epoch: 012, Train Loss: 0.2056, Train MSE: 0.2728, Train MAE: 0.3474
+Epoch: 012, Valid Loss: 0.3721, Valid MSE: 0.3054, Valid MAE: 0.3603
+###Update tasks appear###
+Test low! Updating! Test MSE: 0.2857, Test MAE: 0.3356, Test low! Updating! Valid Loss: 0.3721, epoch:  12
+Epoch: 013, Training Time: 34.0100 secs
+Epoch: 013, Validation Time: 4.4238 secs
+-----------------------
+Epoch: 013, Train Loss: 0.2021, Train MSE: 0.2710, Train MAE: 0.3460
+Epoch: 013, Valid Loss: 0.3709, Valid MSE: 0.3048, Valid MAE: 0.3596
+###Update tasks appear###
+Test low! Updating! Test MSE: 0.2851, Test MAE: 0.3351, Test low! Updating! Valid Loss: 0.3709, epoch:  13
+Epoch: 014, Training Time: 33.8202 secs
+Epoch: 014, Validation Time: 4.4401 secs
+-----------------------
+Epoch: 014, Train Loss: 0.1989, Train MSE: 0.2690, Train MAE: 0.3445
+Epoch: 014, Valid Loss: 0.3722, Valid MSE: 0.3052, Valid MAE: 0.3601
+No update
+Epoch: 015, Training Time: 33.9961 secs
+Epoch: 015, Validation Time: 4.3819 secs
+-----------------------
+Epoch: 015, Train Loss: 0.1959, Train MSE: 0.2672, Train MAE: 0.3430
+Epoch: 015, Valid Loss: 0.3709, Valid MSE: 0.3052, Valid MAE: 0.3599
+###Update tasks appear###
+Test low! Updating! Test MSE: 0.2842, Test MAE: 0.3348, Test low! Updating! Valid Loss: 0.3709, epoch:  15
+Epoch: 016, Training Time: 33.7859 secs
+Epoch: 016, Validation Time: 4.3623 secs
+-----------------------
+Epoch: 016, Train Loss: 0.1934, Train MSE: 0.2657, Train MAE: 0.3419
+Epoch: 016, Valid Loss: 0.3720, Valid MSE: 0.3058, Valid MAE: 0.3603
+No update
+Epoch: 017, Training Time: 34.0295 secs
+Epoch: 017, Validation Time: 4.3380 secs
+-----------------------
+Epoch: 017, Train Loss: 0.1909, Train MSE: 0.2643, Train MAE: 0.3406
+Epoch: 017, Valid Loss: 0.3726, Valid MSE: 0.3055, Valid MAE: 0.3601
+No update
+Epoch: 018, Training Time: 33.8276 secs
+Epoch: 018, Validation Time: 4.3764 secs
+-----------------------
+Epoch: 018, Train Loss: 0.1887, Train MSE: 0.2628, Train MAE: 0.3396
+Epoch: 018, Valid Loss: 0.3720, Valid MSE: 0.3044, Valid MAE: 0.3593
+No update
+Epoch: 019, Training Time: 34.1764 secs
+Epoch: 019, Validation Time: 4.3558 secs
+-----------------------
+Epoch: 019, Train Loss: 0.1865, Train MSE: 0.2611, Train MAE: 0.3385
+Epoch: 019, Valid Loss: 0.3736, Valid MSE: 0.3046, Valid MAE: 0.3593
+No update
+Epoch: 020, Training Time: 34.1959 secs
+Epoch: 020, Validation Time: 4.2625 secs
+-----------------------
+Epoch: 020, Train Loss: 0.1846, Train MSE: 0.2599, Train MAE: 0.3374
+Epoch: 020, Valid Loss: 0.3722, Valid MSE: 0.3050, Valid MAE: 0.3598
+No update
+Epoch: 021, Training Time: 33.9877 secs
+Epoch: 021, Validation Time: 4.4524 secs
+-----------------------
+Epoch: 021, Train Loss: 0.1828, Train MSE: 0.2587, Train MAE: 0.3366
+Epoch: 021, Valid Loss: 0.3730, Valid MSE: 0.3047, Valid MAE: 0.3594
+No update
+Epoch: 022, Training Time: 34.0091 secs
+Epoch: 022, Validation Time: 4.3298 secs
+-----------------------
+Epoch: 022, Train Loss: 0.1812, Train MSE: 0.2577, Train MAE: 0.3359
+Epoch: 022, Valid Loss: 0.3739, Valid MSE: 0.3045, Valid MAE: 0.3593
+No update
+Epoch: 023, Training Time: 34.2131 secs
+Epoch: 023, Validation Time: 4.3603 secs
+-----------------------
+Epoch: 023, Train Loss: 0.1796, Train MSE: 0.2563, Train MAE: 0.3348
+Epoch: 023, Valid Loss: 0.3741, Valid MSE: 0.3042, Valid MAE: 0.3591
+No update
+Epoch: 024, Training Time: 34.3784 secs
+Epoch: 024, Validation Time: 4.3558 secs
+-----------------------
+Epoch: 024, Train Loss: 0.1780, Train MSE: 0.2551, Train MAE: 0.3340
+Epoch: 024, Valid Loss: 0.3741, Valid MSE: 0.3042, Valid MAE: 0.3589
+No update
+Epoch: 025, Training Time: 34.2601 secs
+Epoch: 025, Validation Time: 4.2749 secs
+-----------------------
+Epoch: 025, Train Loss: 0.1768, Train MSE: 0.2544, Train MAE: 0.3333
+Epoch: 025, Valid Loss: 0.3749, Valid MSE: 0.3039, Valid MAE: 0.3587
+No update
+Epoch: 026, Training Time: 33.9280 secs
+Epoch: 026, Validation Time: 4.2554 secs
+-----------------------
+Epoch: 026, Train Loss: 0.1754, Train MSE: 0.2534, Train MAE: 0.3325
+Epoch: 026, Valid Loss: 0.3753, Valid MSE: 0.3041, Valid MAE: 0.3589
+No update
+Epoch: 027, Training Time: 33.9134 secs
+Epoch: 027, Validation Time: 4.2751 secs
+-----------------------
+Epoch: 027, Train Loss: 0.1743, Train MSE: 0.2525, Train MAE: 0.3320
+Epoch: 027, Valid Loss: 0.3767, Valid MSE: 0.3038, Valid MAE: 0.3585
+No update
+Epoch: 028, Training Time: 34.0481 secs
+Epoch: 028, Validation Time: 4.4153 secs
+-----------------------
+Epoch: 028, Train Loss: 0.1730, Train MSE: 0.2516, Train MAE: 0.3314
+Epoch: 028, Valid Loss: 0.3766, Valid MSE: 0.3038, Valid MAE: 0.3585
+No update
+Epoch: 029, Training Time: 34.5286 secs
+Epoch: 029, Validation Time: 4.3649 secs
+-----------------------
+Epoch: 029, Train Loss: 0.1720, Train MSE: 0.2507, Train MAE: 0.3308
+Epoch: 029, Valid Loss: 0.3745, Valid MSE: 0.3033, Valid MAE: 0.3581
+No update
+Epoch: 030, Training Time: 33.7807 secs
+Epoch: 030, Validation Time: 4.4868 secs
+-----------------------
+Epoch: 030, Train Loss: 0.1708, Train MSE: 0.2497, Train MAE: 0.3299
+Epoch: 030, Valid Loss: 0.3734, Valid MSE: 0.3022, Valid MAE: 0.3574
+No update
+Epoch: 031, Training Time: 34.1252 secs
+Epoch: 031, Validation Time: 4.2611 secs
+-----------------------
+Epoch: 031, Train Loss: 0.1699, Train MSE: 0.2492, Train MAE: 0.3296
+Epoch: 031, Valid Loss: 0.3740, Valid MSE: 0.3024, Valid MAE: 0.3573
+No update
+Epoch: 032, Training Time: 34.0218 secs
+Epoch: 032, Validation Time: 4.3157 secs
+-----------------------
+Epoch: 032, Train Loss: 0.1690, Train MSE: 0.2484, Train MAE: 0.3290
+Epoch: 032, Valid Loss: 0.3753, Valid MSE: 0.3016, Valid MAE: 0.3568
+No update
+Epoch: 033, Training Time: 33.9459 secs
+Epoch: 033, Validation Time: 4.3281 secs
+-----------------------
+Epoch: 033, Train Loss: 0.1681, Train MSE: 0.2479, Train MAE: 0.3286
+Epoch: 033, Valid Loss: 0.3739, Valid MSE: 0.3014, Valid MAE: 0.3564
+No update
+Epoch: 034, Training Time: 34.2693 secs
+Epoch: 034, Validation Time: 4.2869 secs
+-----------------------
+Epoch: 034, Train Loss: 0.1671, Train MSE: 0.2468, Train MAE: 0.3279
+Epoch: 034, Valid Loss: 0.3759, Valid MSE: 0.3013, Valid MAE: 0.3566
+No update
+Epoch: 035, Training Time: 34.1560 secs
+Epoch: 035, Validation Time: 4.3720 secs
+-----------------------
+Epoch: 035, Train Loss: 0.1664, Train MSE: 0.2462, Train MAE: 0.3275
+Epoch: 035, Valid Loss: 0.3731, Valid MSE: 0.3016, Valid MAE: 0.3567
+No update
+Epoch: 036, Training Time: 33.9875 secs
+Epoch: 036, Validation Time: 4.4028 secs
+-----------------------
+Epoch: 036, Train Loss: 0.1656, Train MSE: 0.2457, Train MAE: 0.3272
+Epoch: 036, Valid Loss: 0.3754, Valid MSE: 0.3012, Valid MAE: 0.3564
+No update
+Epoch: 037, Training Time: 34.0927 secs
+Epoch: 037, Validation Time: 4.4397 secs
+-----------------------
+Epoch: 037, Train Loss: 0.1649, Train MSE: 0.2450, Train MAE: 0.3267
+Epoch: 037, Valid Loss: 0.3741, Valid MSE: 0.3003, Valid MAE: 0.3558
+No update
+Epoch: 038, Training Time: 33.7783 secs
+Epoch: 038, Validation Time: 4.4085 secs
+-----------------------
+Epoch: 038, Train Loss: 0.1642, Train MSE: 0.2448, Train MAE: 0.3263
+Epoch: 038, Valid Loss: 0.3753, Valid MSE: 0.3002, Valid MAE: 0.3555
+No update
+Epoch: 039, Training Time: 34.2202 secs
+Epoch: 039, Validation Time: 4.2754 secs
+-----------------------
+Epoch: 039, Train Loss: 0.1635, Train MSE: 0.2441, Train MAE: 0.3258
+Epoch: 039, Valid Loss: 0.3732, Valid MSE: 0.2999, Valid MAE: 0.3553
+No update
+Epoch: 040, Training Time: 34.1276 secs
+Epoch: 040, Validation Time: 4.4990 secs
+-----------------------
+Epoch: 040, Train Loss: 0.1628, Train MSE: 0.2434, Train MAE: 0.3255
+Epoch: 040, Valid Loss: 0.3730, Valid MSE: 0.2998, Valid MAE: 0.3550
+No update
+Epoch: 041, Training Time: 34.4196 secs
+Epoch: 041, Validation Time: 4.4595 secs
+-----------------------
+Epoch: 041, Train Loss: 0.1621, Train MSE: 0.2430, Train MAE: 0.3252
+Epoch: 041, Valid Loss: 0.3739, Valid MSE: 0.3002, Valid MAE: 0.3554
+No update
+Epoch: 042, Training Time: 34.1015 secs
+Epoch: 042, Validation Time: 4.2948 secs
+-----------------------
+Epoch: 042, Train Loss: 0.1616, Train MSE: 0.2422, Train MAE: 0.3247
+Epoch: 042, Valid Loss: 0.3741, Valid MSE: 0.2994, Valid MAE: 0.3548
+No update
+Epoch: 043, Training Time: 33.7918 secs
+Epoch: 043, Validation Time: 4.3884 secs
+-----------------------
+Epoch: 043, Train Loss: 0.1612, Train MSE: 0.2422, Train MAE: 0.3245
+Epoch: 043, Valid Loss: 0.3726, Valid MSE: 0.2994, Valid MAE: 0.3547
+No update
+Epoch: 044, Training Time: 34.3433 secs
+Epoch: 044, Validation Time: 4.3543 secs
+-----------------------
+Epoch: 044, Train Loss: 0.1605, Train MSE: 0.2417, Train MAE: 0.3242
+Epoch: 044, Valid Loss: 0.3730, Valid MSE: 0.2985, Valid MAE: 0.3539
+No update
+Epoch: 045, Training Time: 33.9890 secs
+Epoch: 045, Validation Time: 4.3345 secs
+-----------------------
+Epoch: 045, Train Loss: 0.1600, Train MSE: 0.2410, Train MAE: 0.3238
+Epoch: 045, Valid Loss: 0.3742, Valid MSE: 0.2985, Valid MAE: 0.3541
+No update
+Epoch: 046, Training Time: 34.3282 secs
+Epoch: 046, Validation Time: 4.3090 secs
+-----------------------
+Epoch: 046, Train Loss: 0.1595, Train MSE: 0.2407, Train MAE: 0.3236
+Epoch: 046, Valid Loss: 0.3721, Valid MSE: 0.2988, Valid MAE: 0.3543
+No update
+Epoch: 047, Training Time: 33.9744 secs
+Epoch: 047, Validation Time: 4.4673 secs
+-----------------------
+Epoch: 047, Train Loss: 0.1589, Train MSE: 0.2399, Train MAE: 0.3230
+Epoch: 047, Valid Loss: 0.3740, Valid MSE: 0.2987, Valid MAE: 0.3543
+No update
+Epoch: 048, Training Time: 34.0204 secs
+Epoch: 048, Validation Time: 4.3828 secs
+-----------------------
+Epoch: 048, Train Loss: 0.1585, Train MSE: 0.2398, Train MAE: 0.3229
+Epoch: 048, Valid Loss: 0.3722, Valid MSE: 0.2978, Valid MAE: 0.3534
+No update
+Epoch: 049, Training Time: 33.9765 secs
+Epoch: 049, Validation Time: 4.3741 secs
+-----------------------
+Epoch: 049, Train Loss: 0.1583, Train MSE: 0.2397, Train MAE: 0.3228
+Epoch: 049, Valid Loss: 0.3745, Valid MSE: 0.2975, Valid MAE: 0.3531
+No update
+Epoch: 050, Training Time: 33.9424 secs
+Epoch: 050, Validation Time: 4.4303 secs
+-----------------------
+Epoch: 050, Train Loss: 0.1577, Train MSE: 0.2392, Train MAE: 0.3223
+Epoch: 050, Valid Loss: 0.3725, Valid MSE: 0.2972, Valid MAE: 0.3529
+No update
+Epoch: 051, Training Time: 34.2641 secs
+Epoch: 051, Validation Time: 4.3673 secs
+-----------------------
+Epoch: 051, Train Loss: 0.1575, Train MSE: 0.2391, Train MAE: 0.3222
+Epoch: 051, Valid Loss: 0.3732, Valid MSE: 0.2970, Valid MAE: 0.3528
+No update
+Epoch: 052, Training Time: 34.2252 secs
+Epoch: 052, Validation Time: 4.4007 secs
+-----------------------
+Epoch: 052, Train Loss: 0.1570, Train MSE: 0.2386, Train MAE: 0.3220
+Epoch: 052, Valid Loss: 0.3735, Valid MSE: 0.2974, Valid MAE: 0.3529
+No update
+Epoch: 053, Training Time: 34.0139 secs
+Epoch: 053, Validation Time: 4.3836 secs
+-----------------------
+Epoch: 053, Train Loss: 0.1567, Train MSE: 0.2385, Train MAE: 0.3217
+Epoch: 053, Valid Loss: 0.3737, Valid MSE: 0.2962, Valid MAE: 0.3520
+No update
+Epoch: 054, Training Time: 34.2512 secs
+Epoch: 054, Validation Time: 4.2809 secs
+-----------------------
+Epoch: 054, Train Loss: 0.1564, Train MSE: 0.2381, Train MAE: 0.3215
+Epoch: 054, Valid Loss: 0.3727, Valid MSE: 0.2964, Valid MAE: 0.3525
+No update
+Epoch: 055, Training Time: 34.1750 secs
+Epoch: 055, Validation Time: 4.2614 secs
+-----------------------
+Epoch: 055, Train Loss: 0.1560, Train MSE: 0.2379, Train MAE: 0.3213
+Epoch: 055, Valid Loss: 0.3739, Valid MSE: 0.2959, Valid MAE: 0.3520
+No update
+Epoch: 056, Training Time: 34.3445 secs
+Epoch: 056, Validation Time: 4.4232 secs
+-----------------------
+Epoch: 056, Train Loss: 0.1557, Train MSE: 0.2372, Train MAE: 0.3210
+Epoch: 056, Valid Loss: 0.3745, Valid MSE: 0.2963, Valid MAE: 0.3521
+No update
+Epoch: 057, Training Time: 34.1335 secs
+Epoch: 057, Validation Time: 4.3281 secs
+-----------------------
+Epoch: 057, Train Loss: 0.1554, Train MSE: 0.2374, Train MAE: 0.3209
+Epoch: 057, Valid Loss: 0.3750, Valid MSE: 0.2955, Valid MAE: 0.3515
+No update
+Epoch: 058, Training Time: 34.2517 secs
+Epoch: 058, Validation Time: 4.3204 secs
+-----------------------
+Epoch: 058, Train Loss: 0.1551, Train MSE: 0.2369, Train MAE: 0.3206
+Epoch: 058, Valid Loss: 0.3740, Valid MSE: 0.2953, Valid MAE: 0.3514
+No update
+Epoch: 059, Training Time: 33.9993 secs
+Epoch: 059, Validation Time: 4.3465 secs
+-----------------------
+Epoch: 059, Train Loss: 0.1549, Train MSE: 0.2367, Train MAE: 0.3204
+Epoch: 059, Valid Loss: 0.3752, Valid MSE: 0.2952, Valid MAE: 0.3516
+No update
+Epoch: 060, Training Time: 34.0161 secs
+Epoch: 060, Validation Time: 4.3193 secs
+-----------------------
+Epoch: 060, Train Loss: 0.1547, Train MSE: 0.2365, Train MAE: 0.3204
+Epoch: 060, Valid Loss: 0.3748, Valid MSE: 0.2945, Valid MAE: 0.3509
+No update
+Epoch: 061, Training Time: 34.1260 secs
+Epoch: 061, Validation Time: 4.3077 secs
+-----------------------
+Epoch: 061, Train Loss: 0.1543, Train MSE: 0.2359, Train MAE: 0.3199
+Epoch: 061, Valid Loss: 0.3772, Valid MSE: 0.2946, Valid MAE: 0.3509
+No update
+Epoch: 062, Training Time: 34.2466 secs
+Epoch: 062, Validation Time: 4.2549 secs
+-----------------------
+Epoch: 062, Train Loss: 0.1541, Train MSE: 0.2358, Train MAE: 0.3199
+Epoch: 062, Valid Loss: 0.3765, Valid MSE: 0.2943, Valid MAE: 0.3505
+No update
+Epoch: 063, Training Time: 34.2644 secs
+Epoch: 063, Validation Time: 4.4538 secs
+-----------------------
+Epoch: 063, Train Loss: 0.1539, Train MSE: 0.2355, Train MAE: 0.3196
+Epoch: 063, Valid Loss: 0.3774, Valid MSE: 0.2941, Valid MAE: 0.3506
+No update
+Epoch: 064, Training Time: 34.2498 secs
+Epoch: 064, Validation Time: 4.4523 secs
+-----------------------
+Epoch: 064, Train Loss: 0.1538, Train MSE: 0.2358, Train MAE: 0.3198
+Epoch: 064, Valid Loss: 0.3781, Valid MSE: 0.2939, Valid MAE: 0.3504
+No update
+Epoch: 065, Training Time: 33.9029 secs
+Epoch: 065, Validation Time: 4.3637 secs
+-----------------------
+Epoch: 065, Train Loss: 0.1536, Train MSE: 0.2356, Train MAE: 0.3195
+Epoch: 065, Valid Loss: 0.3781, Valid MSE: 0.2937, Valid MAE: 0.3501
+No update
+Average Training Time: 34.0106 secs/epoch
+Average Validation Time: 4.3570 secs
+Training ends
+The epoch of the best result： 15
+The valid loss of the best model 0.3709
+Test time (total): 26.6344 seconds
+On average horizons, Test MSE: 0.2842, Test MAE: 0.3348
+Average Testing Time: nan secs
+Total time spent: 2630.9481
