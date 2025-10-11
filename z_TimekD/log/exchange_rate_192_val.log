@@ -1,0 +1,5 @@
+Length of train_hd_set: 5024
+Length of test_hd_set: 1326
+Length of val_hd_set: 569
+Namespace(batch_size=1, d_model=768, data_path='exchange_rate', device='cuda:1', divide='val', input_len=96, l_layers=12, model_name='gpt2', num_nodes=8, num_workers=10, output_len=192)
+Total time spent: 34.6248 minutes
