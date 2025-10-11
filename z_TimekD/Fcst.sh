@@ -2,7 +2,7 @@
 export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
 export CUDA_LAUNCH_BLOCKING=1
 
-device="cuda:0"
+device="cuda:1"
 learning_rates=(1e-4 1e-5)
 batch_sizes=(16)
 seq_lens=(96)     # Input Length
@@ -12,8 +12,9 @@ d_llm=(768)
 e_layers=(2)
 dropout_ns=(0.5)
 model_name="gpt2"
-data_paths=("ETTm1" "ETTm2" "ETTh1" "ETTh2")
+data_paths=("exchange_rate")
 epochs=(100)
+num_node=(8)
 
 for data_path in "${data_paths[@]}"; do
   for seq_len in "${seq_lens[@]}"; do 
@@ -30,7 +31,7 @@ for data_path in "${data_paths[@]}"; do
                   --data_path $data_path \
                   --device $device \
                   --batch_size $batch_size \
-                  --num_nodes 7 \
+                  --num_nodes ${num_node} \
                   --seq_len $seq_len \
                   --pred_len $pred_len \
                   --epochs $epochs \
