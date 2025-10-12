@@ -1,6 +1,4 @@
-export PYTHONPATH=/hdd/conda_envs/envs/aLLM4TS/bin/python:$PYTHONPATH
-export CUDA_VISIBLE_DEVICES=1
-
+export OMP_NUM_THREADS=4
 if [ ! -d "./logs" ]; then
     mkdir ./logs
 fi
@@ -30,6 +28,7 @@ model_id=$data_name'_'$model_name
 seq_len=1024
 exp_des=basic
 hf_model=gpt2
+batch_size_list=(512)
 
 for seq_len in $seq_len
 do
@@ -49,7 +48,7 @@ for d_ff in 768
 do
 for lr in 0.0001 
 do
-for bs in 2048 
+for bs in $batch_size_list 
 do
 for percent in 100 
 do
@@ -58,7 +57,7 @@ do
 for pt_layers in ln_wpe_attn_mlp
 do
     exp_des=$pt_layers'_'$hf_model'_w_weight_s16'
-    /hdd/conda_envs/envs/aLLM4TS/bin/python -u run_LLM4TS.py \
+    torchrun --nproc_per_node=2 run_LLM4TS.py \
     --is_training 1 \
     --root_path $root_path_name \
     --data_path $data_path_name \
@@ -95,6 +94,7 @@ do
     --c_pt 1 \
     --pt_data $pt_data \
     --pt_layers $pt_layers \
+    --use_multi_gpu \
     --checkpoints ./checkpoints/pt_patch/$pt_data 
 done
 done

@@ -144,7 +144,8 @@ if __name__ == '__main__':
 
     if args.use_gpu and args.use_multi_gpu:
         args.local_rank = int(os.environ["LOCAL_RANK"])
-        dist.init_process_group(backend="nccl")
+        dist.init_process_group(backend="nccl", init_method="env://")
+        torch.cuda.set_device(args.local_rank)
 
                 
 
