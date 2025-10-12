@@ -48,7 +48,7 @@ for d_ff in 768
 do
 for lr in 0.0001 
 do
-for bs in $batch_size_list 
+for bs in $batch_size_list
 do
 for percent in 100 
 do
@@ -56,7 +56,7 @@ for pt_data in ETTh1_ETTm1_ETTh2_ETTm2_weather_traffic_electricity_illness
 do
 for pt_layers in ln_wpe_attn_mlp
 do
-    exp_des=$pt_layers'_'$hf_model'_w_weight_s16'
+    exp_des=$pt_layers'_'$hf_model'_w_weight_s8'
     torchrun --nproc_per_node=2 run_LLM4TS.py \
     --is_training 1 \
     --root_path $root_path_name \
@@ -84,7 +84,7 @@ do
     --fc_dropout 0.2\
     --head_dropout 0\
     --patch_len 16\
-    --stride 16\
+    --stride 8\
     --des $exp_des \
     --train_epochs 100\
     --patience 5\
