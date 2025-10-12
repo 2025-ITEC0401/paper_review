@@ -6,10 +6,11 @@ import argparse
 from torch.utils.data import DataLoader
 from data_provider.data_loader_save import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from clm import GenPromptEmb
+from accelerate import Accelerator
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", type=str, default="cuda:7")
+    # parser.add_argument("--device", type=str, default="cuda:7")
     parser.add_argument("--data_path", type=str, default="ETTh1")
     parser.add_argument("--num_nodes", type=int, default=7)
     parser.add_argument("--input_len", type=int, default=96)
@@ -33,7 +34,8 @@ def get_dataset(data_path, flag, input_len, output_len):
     return dataset_class(flag=flag, size=[input_len, 0, output_len], data_path=data_path)
 
 def save_embeddings(args):
-    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    accelerator = Accelerator(mixed_precision='fp16')
+    # device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     train_set = get_dataset(args.data_path, 'train', args.input_len, args.output_len)
     test_set = get_dataset(args.data_path, 'test', args.input_len, args.output_len)
     val_set = get_dataset(args.data_path, 'val', args.input_len, args.output_len)
@@ -52,7 +54,7 @@ def save_embeddings(args):
         data_path=args.data_path,
         model_name=args.model_name,
         num_nodes=args.num_nodes,
-        device=args.device,
+        # device=args.device,
         input_len=args.input_len,
         output_len=args.output_len,
         d_model=args.d_model,
@@ -60,21 +62,28 @@ def save_embeddings(args):
     ).to(device)
 
     print(args)
+    
+    gen_prompt_emb, data_loader = accelerator.prepare(
+        gen_prompt_emb, data_loader
+    )
 
     save_path = f"{args.data_path}/{args.output_len}/{args.divide}/"
-    os.makedirs(save_path, exist_ok=True)
-
-    emb_time_path = f"./Results/emb_time/"
-    os.makedirs(emb_time_path, exist_ok=True)
+    if accelerator.is_main_process:
+        os.makedirs(save_path, exist_ok=True)
+        emb_time_path = f"./Results/emb_time/"
+        os.makedirs(emb_time_path, exist_ok=True)
     # max_token_counts = []
 
     for i, (x, y, x_mark, y_mark) in enumerate(data_loader):
-        embeddings = gen_prompt_emb.generate_embeddings(x.to(device), y.to(device), x_mark.to(device), y_mark.to(device))
+        # embeddings = gen_prompt_emb.generate_embeddings(x.to(device), y.to(device), x_mark.to(device), y_mark.to(device))
+        embeddings = gen_prompt_emb.generate_embeddings(x, y, x_mark, y_mark)
         # max_token_counts.append(max_token_count)
-
-        file_path = f"{save_path}{i}.h5"
-        with h5py.File(file_path, 'w') as hf:
-            hf.create_dataset('embeddings', data=embeddings.detach().cpu().numpy())
+        embeddings = accelerator.gather(embeddings)
+        
+        if accelerator.is_main_process:
+            file_path = f"{save_path}{i}.h5"    
+            with h5py.File(file_path, 'w') as hf:
+                hf.create_dataset('embeddings', data=embeddings.detach().cpu().numpy())
 
         # Save and visualize the first sample
         # if i >= 0:

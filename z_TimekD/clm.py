@@ -16,11 +16,13 @@ class BaseModelOutputWithPastAndCrossAttentions:
     cross_attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 class MSK(nn.Module):
-    def __init__(self, device="cuda:0", l_layer=6):
+    # def __init__(self, device="cuda:0", l_layer=6):
+    def __init__(self, l_layer=6):
         super(MSK, self).__init__()
-        self.device = device
+        # self.device = device
         self.gpt2 = GPT2Model.from_pretrained("gpt2", attn_implementation="eager",
-                                              output_attentions=True, output_hidden_states=True)  #attn_implementation="sdpa" OR "eager"
+                                              output_attentions=True, output_hidden_states=True, 
+                                              device_map="auto")  #attn_implementation="sdpa" OR "eager"
         
         self.gpt2.h = self.gpt2.h[:l_layer]
         for param in self.gpt2.h.parameters():
@@ -113,7 +115,8 @@ class MSK(nn.Module):
         )
 
     def forward(self, x, calibrated_mask):
-        calibrated_mask = calibrated_mask.to(self.device).float()
+        # calibrated_mask = calibrated_mask.to(self.device).float()
+        calibrated_mask = calibrated_mask.to(x.device).float()
         calibrated_mask = calibrated_mask.unsqueeze(0)
         num_heads =  self.gpt2.config.n_head
         calibrated_mask = calibrated_mask.unsqueeze(1).repeat(1, num_heads, 1, 1)
@@ -131,7 +134,7 @@ class GenPromptEmb(nn.Module):
         data_path='ETTh1',
         model_name="gpt2",
         num_nodes=7,
-        device='cuda:6',
+        # device='cuda:6',
         input_len=96,
         output_len=96,
         d_model=768,
@@ -141,7 +144,7 @@ class GenPromptEmb(nn.Module):
         self.data_path = data_path
         self.model_name = model_name
         self.num_nodes = num_nodes
-        self.device = device
+        # self.device = device
         self.input_len = input_len
         self.output_len = output_len
         self.d_model = d_model
@@ -151,12 +154,14 @@ class GenPromptEmb(nn.Module):
         self.out_len = self.output_len -1
 
         self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-        self.gpt2 = MSK(device=self.device, l_layer=self.l_layer)
+        # self.gpt2 = MSK(device=self.device, l_layer=self.l_layer)
+        self.gpt2 = MSK(l_layer=self.l_layer)
         self.sub_ac = SCA(
             d_model=self.num_nodes, n_heads=1, d_ff=4*d_model, norm='LayerNorm',
             attn_dropout=0.1, dropout=0.1, pre_norm=True, activation="gelu",
             res_attention=True, n_layers=1, store_attn=False
-        ).to(self.device)
+        # ).to(self.device)
+        )
         for param in self.sub_ac.parameters():
             param.requires_grad = False
 
@@ -183,8 +188,9 @@ class GenPromptEmb(nn.Module):
         return templates[template_type].get(self.data_path, templates[template_type]['ETTh1'])
     
 
-    def _generate_mask(self, token_types, max_length):
-        mask = torch.zeros((max_length, max_length), device=self.device)
+    def _generate_mask(self, token_types, max_length, device):
+        # mask = torch.zeros((max_length, max_length), device=self.device)
+        mask = torch.zeros((max_length, max_length), device=device)
 
         language_indices = [i for i, t in enumerate(token_types) if t == "language"]
         time_series_indices = [i for i, t in enumerate(token_types) if t == "time_series"]
@@ -224,7 +230,8 @@ class GenPromptEmb(nn.Module):
         HD_prompt = HD_prompt.replace("t1", hd_start_date).replace("t2", hd_end_date)
         # print(GT_HD_prompt)
 
-        GT_HD_token = self.tokenizer.encode(GT_HD_prompt, return_tensors="pt").to(self.device)
+        # GT_HD_token = self.tokenizer.encode(GT_HD_prompt, return_tensors="pt").to(self.device)
+        GT_HD_token = self.tokenizer.encode(GT_HD_prompt, return_tensors="pt")
         HD_token = self.tokenizer.encode(HD_prompt, return_tensors="pt").to(self.device)
         
         gt_token_texts = self.tokenizer.convert_ids_to_tokens(GT_HD_token.squeeze(0))
@@ -261,8 +268,8 @@ class GenPromptEmb(nn.Module):
 
 
     def forward(self, GT_HD_token, HD_token, gt_token_types, hd_token_types):
-        GT_HD_token = GT_HD_token.to(self.device)
-        HD_token = HD_token.to(self.device)
+        # GT_HD_token = GT_HD_token.to(self.device)
+        # HD_token = HD_token.to(self.device)
 
         seq_len_GT = GT_HD_token.size(0)
         seq_len_HD = HD_token.size(0)
@@ -270,8 +277,8 @@ class GenPromptEmb(nn.Module):
         # causal_mask_GT = torch.tril(torch.ones((seq_len_GT, seq_len_GT), device=self.device))
         # causal_mask_HD = torch.tril(torch.ones((seq_len_HD, seq_len_HD), device=self.device))
 
-        mask_GT = self._generate_mask(gt_token_types, seq_len_GT)
-        mask_HD = self._generate_mask(hd_token_types, seq_len_HD)
+        mask_GT = self._generate_mask(gt_token_types, seq_len_GT, device=GT_HD_token.device)
+        mask_HD = self._generate_mask(hd_token_types, seq_len_HD, device=HD_token.device)
 
         GT_HD_emb = self.gpt2(GT_HD_token, calibrated_mask=mask_GT)
         HD_emb = self.gpt2(HD_token, calibrated_mask=mask_HD)
@@ -296,11 +303,19 @@ class GenPromptEmb(nn.Module):
                 GT_HD_emb_list.append((i, GT_HD_token, j))
                 HD_emb_list.append((i, HD_token, j))
 
-        prompt_emb_GT = torch.zeros((len(x), max_gt_token, self.d_model, x.shape[2]), dtype=torch.float32, device=self.device)
-        prompt_emb_HD = torch.zeros((len(x), max_hd_token, self.d_model, x.shape[2]), dtype=torch.float32, device=self.device)
+        # prompt_emb_GT = torch.zeros((len(x), max_gt_token, self.d_model, x.shape[2]), dtype=torch.float32, device=self.device)
+        # prompt_emb_HD = torch.zeros((len(x), max_hd_token, self.d_model, x.shape[2]), dtype=torch.float32, device=self.device)
+        current_device = x.device
+        prompt_emb_GT = torch.zeros((len(x), max_gt_token, self.d_model, x.shape[2]), dtype=torch.float32, device=current_device)
+        prompt_emb_HD = torch.zeros((len(x), max_hd_token, self.d_model, x.shape[2]), dtype=torch.float32, device=current_device)
 
         for (i, GT_HD_token, j), (_, HD_token, _) in zip(GT_HD_emb_list, HD_emb_list):
-            GT_HD_emb, HD_emb = self.forward(GT_HD_token.squeeze(0), HD_token.squeeze(0), gt_token_types, hd_token_types)
+            GT_HD_emb, HD_emb = self.forward(
+                GT_HD_token.squeeze(0).to(current_device),
+                HD_token.squeeze(0).to(current_device),
+                gt_token_types,
+                hd_token_types
+            )
             GT_HD_emb = GT_HD_emb.unsqueeze(0)
             HD_emb = HD_emb.unsqueeze(0)
 
