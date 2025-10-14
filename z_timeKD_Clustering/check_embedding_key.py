@@ -23,4 +23,4 @@ if os.path.exists(h5_file_name):
     except Exception as e:
         print(f"Exception occur.")
 else:
-    print("The file does not exists.")
+    print(f"The file does not exists: {h5_file_name}")
