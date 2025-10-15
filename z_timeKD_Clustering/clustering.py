@@ -1,24 +1,35 @@
+import os
 import h5py
-import numpy as np
 import cupy as cp
 import cudf
 from cuml.manifold import TSNE
 from cuml.decomposition import PCA
 from cuml.cluster import DBSCAN
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 ROOT_DIR = './data'
 DATASET = ['ETTh1', 'exchange_rate', 'traffic', 'electricity', 'HVAC']
 OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
 TYPE = ['train', 'val']
+RES_DIR = './Result/csv'
 
+os.makedirs(RES_DIR, exist_ok=True)
+
+print("\n\n============= Clustering =============")
+
+idx = 0
 for ds in DATASET:
     for output_len in OUTPUT_LEN_LIST:
         for tp in TYPE:
             h5_path = f"{ROOT_DIR}/{ds}_o{output_len}_{tp}_consolidated.h5"
             
-            print("Loading h5 file...\n")
+            if not os.path.exists(h5_path):
+                print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST) * len(TYPE)}) File not found: {h5_path}")
+                idx += 1
+                continue
+            
+            print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST) * len(TYPE)}) Loading h5 file: {h5_path}\n")
+            idx += 1
+
             with h5py.File(h5_path, 'r') as hf:
                 loaded_matrix = hf['data'][:]
             
@@ -33,14 +44,14 @@ for ds in DATASET:
             tsne_gpu = TSNE(
                 n_components=2,
                 perplexity=30,
-                method='barnes-hut',
+                method='barnes_hut',
                 random_state=42
             )
             tsne_res_gpu = tsne_gpu.fit_transform(pca_result_gpu)
             print(f"t-SNE completed. Shape after t-SNE: {tsne_res_gpu.shape}")
 
             print("\nRunning DBSCAN on GPU...\n")
-            dbscan_gpu = DBSCAN(eps=1.0, min_samples=5)
+            dbscan_gpu = DBSCAN(eps=15, min_samples=10)
             clusters_gpu = dbscan_gpu.fit_predict(tsne_res_gpu)
             print("DBSCAN Completed.")
             
@@ -58,22 +69,6 @@ for ds in DATASET:
             
             df_plot_pd = df_plot.to_pandas()
             
-            output_filename = '{ROOT_DIR}/{ds}_o{output_len}_{tp}_res.csv'
+            output_filename = f'{RES_DIR}/{ds}_o{output_len}_{tp}_res.csv'
             df_plot_pd.to_csv(output_filename, index=False)
-            print("Result Saved.\n")
-            
-            # plt.figure(figsize=(14, 10))
-            # sns.scatterplot(
-            #     x="tsne-2d-one", y="tsne-2d-two",
-            #     hue="cluster_label",
-            #     palette=sns.color_palette("hsv", len(set(clusters_cpu))),
-            #     data=df_plot_pd,
-            #     legend="full",
-            #     alpha=0.7
-            # )
-            
-            # plt.title("GPU Accelerated t-SNE & DBScan Clustering")
-            # plt.xlabel("t-SNE Dimension 1")
-            # plt.ylabel("t-SNE Dimension 2")
-            # plt.grid(True)
-            # plt.show()
+            print(f"Result Saved: {output_filename}\n")
