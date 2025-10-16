@@ -1,77 +1,110 @@
-import os
-from glob import glob
-from sktime.datasets import load_from_arff_to_dataframe, load_from_tsfile
+import os 
 import pandas as pd
-
+import numpy as np
 
 ROOT_PATH = "./data"
+# DATASET = ['BasicMotions', 'DuckDuckGeese', 'Epilepsy']
+DATASET = ['Epilepsy']
 
-def convert_to_CSV(filename):
-    try:
-        print(f"File: {filename}")
-
-        if (not os.path.exists(filename)):
-            print("!!!! File not Found. !!!!")
-            return
-
-        if (filename[-4:]=='arff'):
-            data, label = load_from_arff_to_dataframe(filename)
-        else:
-            if (not os.path.exists(filename[:-2]+'arff')):
-                data, label = load_from_tsfile(filename, return_data_type='nested_univ')
+def convert_ts_format(file_path, output_data, output_label, new_dimension, series_length, delimiter):
+    all_sample_reshaped = []
+    all_labels_expanded = []
+    
+    print(f"File: {file_path}\n- output(data): {output_data}\n- output(label): {output_label}\n- num_dimenstions: {new_dimension}\n- series_length: {series_length}")
+    with open(file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('@') or line.startswith('#') or line.startswith('%'):
+                continue
+            
+            if (delimiter == ','):
+                try:
+                    data_part, label = line.rsplit(',', 1)
+                    print(data_part)
+                    cleaned_data_str = data_part.strip().strip("'")
+                    data_str_with_spaces = cleaned_data_str.replace(',', ' ').replace("\\n", ' ')
+                    values_str = data_str_with_spaces.split()
+                except ValueError:
+                    print("ERROR: Invalid Format")
+                    continue
             else:
-                print("!! .arff file exists... Skip...")
-                return           
+                data_part, label = line.rsplit(':', 1)
+                cleaned_data_str = data_part.strip().replace(':', ',')
+                values_str = cleaned_data_str.split(',')
+            values_flat = [float(v) for v in values_str if v]
+            
+            if not values_str:
+                continue
+            
+            reshaped_by_dim = np.array(values_flat).reshape(new_dimension, series_length)
+            reshaped_by_time = reshaped_by_dim.T
+            
+            all_sample_reshaped.append(pd.DataFrame(reshaped_by_time))
+            all_labels_expanded.extend([label] * series_length)
+            
+    if not all_sample_reshaped:
+        print("!!!! Data does not exist !!!!")
+        return
+    
+    final_df = pd.concat(all_sample_reshaped, ignore_index=True)
+    final_df.columns = [f'Var_{i + 1}' for i in range(new_dimension)]
+    final_df.insert(0, 'date', range(len(final_df)))
 
-        flattended_rows = []
-        for i in range(len(data)):
-            combined_series = pd.concat([data.iloc[i, j] for j in range(data.shape[1])],
-                                        axis=0, ignore_index=True)
-            flattended_rows.append(combined_series)
+    labels_df = pd.DataFrame({
+        'date': range(len(all_labels_expanded)),
+        'label': all_labels_expanded
+    })
         
-        df_flat = pd.DataFrame(flattended_rows)
-        df_flat.columns = range(df_flat.shape[1])
-        df_flat.insert(0, 'activity', label)
-
-
-        name = f"{ds}_{tp}.csv"
-        fullpath = f"{os.path.join(ROOT_PATH, name)}"
-        df_flat.to_csv(fullpath, index=False)
-        print(f"- Complete: {fullpath}")
-    except Exception as e:
-        print(f"- ERROR: {e}\n")
-
-def merge_CSV(dataset, trainCSV, testCSV):
-
-    print(f"\n dataset: {dataset} | train: {trainCSV} | test: {testCSV}\n")
-    df_train = pd.read_csv(trainCSV)
-    df_test = pd.read_csv(testCSV)
-
-    label_column_name = df_train.select_dtypes(include=['object']).columns[0]
-
-    labels_train = df_train[label_column_name]
-    labels_test = df_test[label_column_name]
-
-    all_labels = pd.concat([labels_train, labels_test], ignore_index=True)
-    all_labels.to_csv(f"{ROOT_PATH}/{dataset}_labels.csv", index=False, header=[label_column_name])
-
-    df_train = df_train.drop(columns=[label_column_name])
-    df_test = df_test.drop(columns=[label_column_name])
-
-    df_combined = pd.concat([df_train, df_test], ignore_index=True)
-
-    date_rng = pd.date_range(start='2023-01-01', periods=len(df_combined), freq='H')
-    df_combined.insert(0, 'date', date_rng)
-
-    data_columns = {col: f'OT_{i}' for i, col in enumerate(df_combined.columns[1:])}
-    df_combined = df_combined.rename(columns=data_columns)
-
-    df_combined.to_csv(f"{ROOT_PATH}/{dataset}.csv", index=False)
-
-for ds in ['BasicMotions', 'DuckDuckGeese', 'Epilepsy']:
+    final_df.to_csv(output_data, index=False)
+    labels_df.to_csv(output_label, index=False)
+    
+    print(f"\nComplete!\n- Data: {output_data},\n- Label: {output_label}\n---------------------------\n")
+            
+for ds in DATASET:
     path = f"{ROOT_PATH}/{ds}"
-    print(f"\n\n============ {ds} ============")
+    match ds:
+        case 'BasicMotions':
+            new_dimension = 6
+            series_length = 100
+        case 'DuckDuckGeese':
+            new_dimension = 1345
+            series_length = 270
+        case 'Epilepsy':
+            new_dimension = 3
+            series_length = 207
+        case _:
+            print("!!! Invalid Dataset !!!")
+            continue    
+        
     for tp in ['TRAIN', 'TEST']:
+        print(f"\n============ {ds}_{tp} ============")
         for extension in ['arff', 'ts']:
-            convert_to_CSV(filename=f"{path}/{ds}_{tp}.{extension}")
-    merge_CSV(ds, f"{ROOT_PATH}/{ds}_TRAIN.csv", f"{ROOT_PATH}/{ds}_TEST.csv")
+            if (extension == 'arff'):
+                delimiter = ','
+            elif (extension == 'ts'):
+                delimiter = ':'
+            else:
+                print("!!! Invalid Data Format !!!")
+                continue
+            
+            filename = f"{path}/{ds}_{tp}.{extension}"
+            
+            if (not os.path.exists(filename)):
+                print(f"File: {filename}")
+                print(" !! File not Found !!\n")
+                continue
+            
+            if (extension == 'ts' and os.path.exists(f"{path}/{ds}_{tp}.arff")):
+                print(f"File: {filename}")
+                print("!! .arff file exists... Skip...\n")
+                continue               
+            
+            convert_ts_format(
+                file_path=filename,
+                output_data=f"{ROOT_PATH}/{ds}_{tp}_data.csv",
+                output_label=f"{ROOT_PATH}/{ds}_{tp}_label.csv",
+                new_dimension=new_dimension,
+                series_length=series_length,
+                delimiter=delimiter
+            )
+    # merge_CSV(ds, f"{ROOT_PATH}/{ds}_TRAIN.csv", f"{ROOT_PATH}/{ds}_TEST.csv")
