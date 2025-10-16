@@ -2,12 +2,11 @@
 export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
 export CUDA_LAUNCH_BLOCKING=1
 
-# data_paths=("ETTm1" "ETTm2")
-data_paths=("weather")
+
+data_paths=("BasicMotions")
 divides=("train" "val") 
 device="cuda:0"
-# num_nodes=7
-num_nodes=21
+num_nodes=6
 input_len=96
 output_len_values=(24 36 48 96 192)
 model_name=("gpt2")
