@@ -3,8 +3,7 @@ import pandas as pd
 import numpy as np
 
 ROOT_PATH = "./data"
-# DATASET = ['BasicMotions', 'DuckDuckGeese', 'Epilepsy']
-DATASET = ['Epilepsy']
+DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
 
 def convert_ts_format(file_path, output_data, output_label, new_dimension, series_length, delimiter):
     all_sample_reshaped = []
@@ -20,7 +19,6 @@ def convert_ts_format(file_path, output_data, output_label, new_dimension, serie
             if (delimiter == ','):
                 try:
                     data_part, label = line.rsplit(',', 1)
-                    print(data_part)
                     cleaned_data_str = data_part.strip().strip("'")
                     data_str_with_spaces = cleaned_data_str.replace(',', ' ').replace("\\n", ' ')
                     values_str = data_str_with_spaces.split()
@@ -47,7 +45,7 @@ def convert_ts_format(file_path, output_data, output_label, new_dimension, serie
         return
     
     final_df = pd.concat(all_sample_reshaped, ignore_index=True)
-    final_df.columns = [f'Var_{i + 1}' for i in range(new_dimension)]
+    final_df.columns = [f'OT{i + 1}' for i in range(new_dimension)]
     final_df.insert(0, 'date', range(len(final_df)))
 
     labels_df = pd.DataFrame({
@@ -58,7 +56,22 @@ def convert_ts_format(file_path, output_data, output_label, new_dimension, serie
     final_df.to_csv(output_data, index=False)
     labels_df.to_csv(output_label, index=False)
     
-    print(f"\nComplete!\n- Data: {output_data},\n- Label: {output_label}\n---------------------------\n")
+    print(f"\nComplete!\n- Data: {output_data},\n- Label: {output_label}\n")
+
+def merge_CSV(trainCSV, testCSV, targetPath):
+    print("Merging csv file for Train and test...")
+    df_train = pd.read_csv(trainCSV)
+    df_test = pd.read_csv(testCSV)
+
+    combined_df = pd.concat([df_train, df_test], ignore_index=True)
+    num_rows = len(combined_df)
+    date_range = pd.date_range(start='2023-01-01', periods=num_rows, freq='H')
+
+    first_col_name = combined_df.columns[0]
+    combined_df[first_col_name] = date_range
+
+    combined_df.to_csv(targetPath, index=False)
+    print(f"Complete!\n- Path: {targetPath}\n---------------------------\n")
             
 for ds in DATASET:
     path = f"{ROOT_PATH}/{ds}"
@@ -66,12 +79,15 @@ for ds in DATASET:
         case 'BasicMotions':
             new_dimension = 6
             series_length = 100
-        case 'DuckDuckGeese':
-            new_dimension = 1345
-            series_length = 270
         case 'Epilepsy':
             new_dimension = 3
-            series_length = 207
+            series_length = 206
+        case 'HandMovementDirection':
+            new_dimension = 10
+            series_length = 400
+        case 'Libras':
+            new_dimension = 2
+            series_length = 45
         case _:
             print("!!! Invalid Dataset !!!")
             continue    
@@ -88,7 +104,7 @@ for ds in DATASET:
                 continue
             
             filename = f"{path}/{ds}_{tp}.{extension}"
-            
+
             if (not os.path.exists(filename)):
                 print(f"File: {filename}")
                 print(" !! File not Found !!\n")
@@ -107,4 +123,5 @@ for ds in DATASET:
                 series_length=series_length,
                 delimiter=delimiter
             )
-    # merge_CSV(ds, f"{ROOT_PATH}/{ds}_TRAIN.csv", f"{ROOT_PATH}/{ds}_TEST.csv")
+    merge_CSV(trainCSV=f"{ROOT_PATH}/{ds}_TRAIN_data.csv", testCSV=f"{ROOT_PATH}/{ds}_TEST_data.csv", targetPath = f"{ROOT_PATH}/data/{ds}.csv")
+    merge_CSV(trainCSV=f"{ROOT_PATH}/{ds}_TRAIN_label.csv", testCSV=f"{ROOT_PATH}/{ds}_TEST_label.csv", targetPath = f"{ROOT_PATH}/{ds}_label.csv")

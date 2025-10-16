@@ -17,7 +17,7 @@ l_layer=12
 for data_path in "${data_paths[@]}"; do
   for divide in "${divides[@]}"; do
     for output_len in "${output_len_values[@]}"; do
-      log_file="${data_path}_${output_len}_${divide}.log"
+      log_file="$./logs/{data_path}_${output_len}_${divide}.log"
       python3 store_emb.py \
         --data_path $data_path \
         --divide $divide \
