@@ -1,13 +1,13 @@
 #!/bin/bash
-export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
+#export PYTHONPATH=/home/intern/.local/lib/python3.8/site-packages:$PYTHONPATH
+export PYTHONPATH=/hdd/conda_envs/envs/timeKD/lib/python3.10/site-packages:$PYTHONPATH
 export CUDA_LAUNCH_BLOCKING=1
+export OMP_NUM_THREADS=8
 
-# data_paths=("ETTh1" "ETTh2")
-data_paths=("exchange_rate")
+data_paths=("Epilepsy")
 divides=("train" "val") 
-device="cuda:1"
-# num_nodes=7
-num_nodes=8
+device="cuda:0"
+num_nodes=3
 input_len=96
 output_len_values=(24 36 48 96 192)
 model_name=("gpt2")
@@ -17,8 +17,8 @@ l_layer=12
 for data_path in "${data_paths[@]}"; do
   for divide in "${divides[@]}"; do
     for output_len in "${output_len_values[@]}"; do
-      log_file="${data_path}_${output_len}_${divide}.log"
-      python3 store_emb.py \
+      log_file="./logs/${data_path}_${output_len}_${divide}.log"
+      /hdd/conda_envs/envs/timeKD/bin/python store_emb.py \
         --data_path $data_path \
         --divide $divide \
         --device $device \
@@ -27,7 +27,7 @@ for data_path in "${data_paths[@]}"; do
         --output_len $output_len \
         --model_name $model_name \
         --d_model $d_model \
-        --l_layer $l_layer > $log_file
+        --l_layer $l_layer #> $log_file
     done
   done
 done
