@@ -53,7 +53,7 @@ for dataset in DATASET_LIST:
                 
                 try:
                     with h5py.File(save_path, 'w') as hf:
-                        hf.create_dataset('data', data=feature_matrix, compression='gzip')
+                        hf.create_dataset('embeddings', data=feature_matrix, compression='gzip')
                     print(f"({idx}/{len(DATASET_LIST) * len(OUTPUT_LIST) * len(TYPE)}) Matrix saved to: {save_path}\n")
                     idx += 1
                 except Exception as e:

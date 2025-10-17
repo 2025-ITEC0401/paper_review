@@ -51,6 +51,7 @@ dependencies:
   - wheel=0.41.2=py310h06a4308_0
   - xz=5.4.5=h5eee18b_0
   - zlib=1.2.13=h5eee18b_0
+  - pytorch>=1.12.0
   - pytorch-cuda=12.1
   - pip:
       - absl-py==2.0.0
@@ -64,9 +65,10 @@ dependencies:
       - certifi==2022.12.7
       - charset-normalizer==2.1.1
       - contourpy==1.2.0
+      - cupy
       - cycler==0.12.1
       - dgl==2.1.0
-      - easy-torch==1.3.2
+      - easy-torch
       - easydict==1.10
       - einops==0.7.0
       - filelock==3.9.0
@@ -116,6 +118,7 @@ dependencies:
       - sentencepiece==0.2.0
       - setproctitle==1.3.2
       - setuptools==59.5.0
+      - sktime
       - sympy==1.10.1
       - tables==3.7.0
       - tensorboard==2.15.1
@@ -129,4 +132,4 @@ dependencies:
       - urllib3==1.26.13
       - werkzeug==3.0.1
       - yarl==1.9.4
-prefix: /home/cxliu/anaconda3/envs/PyTorch
+prefix: /hdd/conda_envs/envs/timeKD
