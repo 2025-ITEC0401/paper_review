@@ -7,7 +7,7 @@ from cuml.decomposition import PCA
 from cuml.cluster import DBSCAN
 
 ROOT_DIR = './data'
-DATASET = ['ETTh1', 'exchange_rate', 'traffic', 'electricity', 'HVAC']
+DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
 OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
 TYPE = ['train', 'val']
 RES_DIR = './Result/csv'
