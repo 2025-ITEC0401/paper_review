@@ -1,16 +1,18 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 import h5py
-import cupy as cp
 import cudf
-from cuml.manifold import TSNE
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+import cupy as cp
+from cuml.cluster import KMeans
 import pandas as pd
 import numpy as np
 
 ROOT_DIR = './data'
-DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
-OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
+# DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+# OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
+DATASET = ['BasicMotions', 'Epilepsy', 'Libras']
+OUTPUT_LEN_LIST = [24]
 TYPE = ['train', 'val']
 RES_DIR = './Result/csv'
 KEY = 'embeddings'
@@ -20,38 +22,30 @@ os.makedirs(RES_DIR, exist_ok=True)
 def run_kmeans(train_file, test_file, output_file):
     try:
         match ds:
-                case 'BasicMotions':
-                    n_cluster = 4
-                case 'Epilepsy':
-                    n_cluster = 4
-                case 'HandMovementDirection':
-                    n_cluster = 4
-                case 'Libras':
-                    n_cluster = 15
+            case 'BasicMotions':
+                n_cluster = 4
+            case 'Epilepsy':
+                n_cluster = 4
+            case 'HandMovementDirection':
+                n_cluster = 4
+            case 'Libras':
+                n_cluster = 15
                 
         with h5py.File(train_file, 'r') as f:
             train_data = f[KEY][:]
-        train_df = pd.DataFrame(train_data)
+        train_gdf = cudf.DataFrame(train_data)
         
         with h5py.File(test_file, 'r') as f:
             test_data = f[KEY][:]
-        test_df = pd.DataFrame(test_data)
+        test_gdf = cudf.DataFrame(test_data)
 
-        features = train_df.columns
-        X_train = train_df[features]
-        X_test = test_df[features]
+        kmeans_gpu = KMeans(n_clusters=n_cluster, random_state=52)        
+        kmeans_gpu.fit(train_gdf)
 
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
+        test_clusters = kmeans_gpu.predict(test_gdf)
 
-        kmeans = KMeans(n_clusters=n_cluster, random_state=52, n_init=10)
-        kmeans.fit(X_train_scaled)
-
-        test_clusters = kmeans.predict(X_test_scaled)
-
-        results_df = test_df.copy()
-        results_df['cluster'] = test_clusters
+        results_df = test_gdf.to_pandas()
+        results_df['cluster'] = test_clusters.to_numpy()
         
         results_df.to_csv(output_file, index=False, encoding='utf-8-sig')
         
@@ -79,7 +73,7 @@ for ds in DATASET:
             idx += 1
             continue
         
-        print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST))}) Target: {ds}_o{output_len}\n")
+        print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Target: {ds}_o{output_len}\n")
         idx += 1
         
         run_kmeans(h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_res.csv")
