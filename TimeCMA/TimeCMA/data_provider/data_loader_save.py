@@ -103,7 +103,7 @@ class Dataset_ETT_hour(Dataset):
         return self.scaler.inverse_transform(data)
 
 class Dataset_ETT_minute(Dataset):
-    def __init__(self, root_path="/mnt/sfs-common/dataset/", flag='train', size=None, 
+    def __init__(self, root_path="/hdd/intern/daniel/TimeCMA/sfs-common/dataset/", flag='train', size=None, 
                  features='M', data_path='ETTm1', 
                  target='OT', scale=False, inverse=False, timeenc=0, freq='t', cols=None):
 
@@ -250,6 +250,9 @@ class Dataset_Custom(Dataset):
         df_raw.columns: ['date', ...(other features), target feature]
         '''
         cols = list(df_raw.columns)
+        with open("/hdd/intern/daniel/TimeCMA/log", "a") as f:
+            f.write(f"cols: {cols}\n")
+            f.write(f"target: {self.target}\n")
         cols.remove(self.target)
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
