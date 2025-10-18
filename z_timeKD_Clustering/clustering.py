@@ -1,17 +1,20 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import h5py
 import cudf
 import cupy as cp
 from cuml.cluster import KMeans
+from cuml.preprocessing import StandardScaler
+from cuml.manifold import UMAP
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 ROOT_DIR = './data'
-# DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
 # OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
-DATASET = ['BasicMotions', 'Epilepsy', 'Libras']
 OUTPUT_LEN_LIST = [24]
 TYPE = ['train', 'val']
 RES_DIR = './Result/csv'
@@ -19,8 +22,47 @@ KEY = 'embeddings'
 
 os.makedirs(RES_DIR, exist_ok=True)
 
-def run_kmeans(train_file, test_file, output_file):
+def visualize(scaled_data_gdf, title, output_path):
+    scaled_data_np = scaled_data_gdf.to_numpy()
+    reducer = UMAP(n_components=2, random_state=42)
+    embedding = reducer.fit_transform(scaled_data_np)
+    
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(
+        x=embedding[:, 0],
+        y=embedding[:, 1],
+        alpha=0.7
+    )
+    plt.title(f'UMAP Projection of {title}')
+    plt.xlabel('UMAP Dimension 1')
+    plt.ylabel('UAP Dimension 2')
+    plt.grid(True)
+    plt.savefig(output_path)
+    plt.close()
+
+def concatenation(h5_path, n_vars):
+    with h5py.File(h5_path, 'r') as f:
+        data_unrolled = f[KEY][:]
+        
+    num_samples = len(data_unrolled) // n_vars
+    embedding_dim = data_unrolled.shape[1]
+    
+    data_concatenated = data_unrolled.reshape(num_samples, n_vars * embedding_dim)
+    
+    return data_concatenated
+
+def run_kmeans(ds, train_file, test_file, output_file):
     try:
+        match ds:
+            case 'BasicMotions':
+                var = 6
+            case 'Epilepsy':
+                var = 3
+            case 'HandMovementDirection':
+                var = 10
+            case 'Libras':
+                var = 2
+                
         match ds:
             case 'BasicMotions':
                 n_cluster = 4
@@ -30,22 +72,26 @@ def run_kmeans(train_file, test_file, output_file):
                 n_cluster = 4
             case 'Libras':
                 n_cluster = 15
-                
-        with h5py.File(train_file, 'r') as f:
-            train_data = f[KEY][:]
-        train_gdf = cudf.DataFrame(train_data)
         
-        with h5py.File(test_file, 'r') as f:
-            test_data = f[KEY][:]
-        test_gdf = cudf.DataFrame(test_data)
-
+        train_data_concat = concatenation(train_file, n_vars=var)
+        val_data_concat = concatenation(test_file, n_vars=var)
+        
+        train_gdf_concat = cudf.DataFrame(train_data_concat)
+        val_gdf_concat = cudf.DataFrame(val_data_concat)
+        
+        scaler = StandardScaler()
+        scaler.fit(train_gdf_concat)
+        train_gdf_scaled = scaler.transform(train_gdf_concat)
+        val_gdf_scaled = scaler.transform(val_gdf_concat)
+        
+        # visualize(val_gdf_scaled, f"{ds} Val data", f"./{ds}_val_gdf.png")
+        
         kmeans_gpu = KMeans(n_clusters=n_cluster, random_state=52)        
-        kmeans_gpu.fit(train_gdf)
+        kmeans_gpu.fit(train_gdf_scaled)
+        
+        predicted_lables_final = kmeans_gpu.predict(val_gdf_scaled).to_numpy()
 
-        test_clusters = kmeans_gpu.predict(test_gdf)
-
-        results_df = test_gdf.to_pandas()
-        results_df['cluster'] = test_clusters.to_numpy()
+        results_df = pd.DataFrame({'cluster': predicted_lables_final})
         
         results_df.to_csv(output_file, index=False, encoding='utf-8-sig')
         
@@ -76,5 +122,5 @@ for ds in DATASET:
         print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Target: {ds}_o{output_len}\n")
         idx += 1
         
-        run_kmeans(h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_res.csv")
+        run_kmeans(ds, h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_res.csv")
 

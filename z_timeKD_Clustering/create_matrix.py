@@ -4,9 +4,8 @@ import os
 from glob import glob
 
 EMBEDDING_KEY = 'embeddings'
-# DATASET_LIST = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+DATASET_LIST = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
 # OUTPUT_LIST = [24, 36, 48, 96, 192]
-DATASET_LIST = ['BasicMotions', 'Epilepsy', 'Libras']
 OUTPUT_LIST = [24]
 TYPE = ['train', 'val']
 idx = 1
