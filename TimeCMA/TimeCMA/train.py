@@ -137,15 +137,16 @@ def main():
 
     print()
     seed_it(args.seed)
-    # device = torch.device(args.device)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(args.device)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     
     loss = 9999999
     test_log = 999999
     epochs_since_best_mse = 0
 
-    path = os.path.join(args.save, args.data_path, 
-                        f"{args.pred_len}_{args.channel}_{args.e_layer}_{args.d_layer}_{args.learning_rate}_{args.dropout_n}_{args.seed}/")
+    path_syn = f"{args.pred_len}_{args.channel}_{args.e_layer}_{args.d_layer}_{args.learning_rate}_{args.dropout_n}_{args.seed}/"
+    path = os.path.join(args.save, args.data_path, path_syn)
     if not os.path.exists(path):
         os.makedirs(path)
      
