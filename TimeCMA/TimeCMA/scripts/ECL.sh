@@ -18,7 +18,7 @@ dropout_n=0.3
 log_path="./Results/${data_path}/"
 mkdir -p $log_path
 log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dl${d_layer}_dn${dropout_n}_bs${batch_size}.log"
-nohup python train.py \
+nohup  /hdd/conda_envs/envs/TimeCMA/bin/python train.py \
   --data_path $data_path \
   --batch_size $batch_size \
   --num_nodes 7 \
@@ -41,7 +41,7 @@ d_layer=6
 dropout_n=0.3
 
 log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dl${d_layer}_dn${dropout_n}_bs${batch_size}.log"
-nohup python train.py \
+nohup  /hdd/conda_envs/envs/TimeCMA/bin/python train.py \
   --data_path $data_path \
   --batch_size $batch_size \
   --num_nodes 7 \
@@ -64,7 +64,7 @@ d_layer=6
 dropout_n=0.1
 
 log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dl${d_layer}_dn${dropout_n}_bs${batch_size}.log"
-nohup python train.py \
+nohup  /hdd/conda_envs/envs/TimeCMA/bin/python train.py \
   --data_path $data_path \
   --batch_size $batch_size \
   --num_nodes 7 \
@@ -87,7 +87,7 @@ d_layer=6
 dropout_n=0.1
 
 log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dl${d_layer}_dn${dropout_n}_bs${batch_size}.log"
-nohup python train.py \
+nohup  /hdd/conda_envs/envs/TimeCMA/bin/python train.py \
   --data_path $data_path \
   --batch_size $batch_size \
   --num_nodes 7 \
