@@ -5,6 +5,15 @@ import torch
 import random
 from datetime import datetime
 
+def string_save(name, string):
+    with open(name, 'w') as f:
+        f.write(string)
+
+def list_save(name, lst):
+    with open(name, 'w') as f:
+        for item in lst:
+            f.write(f"{item}\n")
+
 def pkl_save(name, var):
     with open(name, 'wb') as f:
         pickle.dump(var, f)
