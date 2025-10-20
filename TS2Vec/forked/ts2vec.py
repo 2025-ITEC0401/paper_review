@@ -6,6 +6,7 @@ from models import TSEncoder
 from models.losses import hierarchical_contrastive_loss
 from utils import take_per_row, split_with_nan, centerize_vary_length_series, torch_pad_nan
 import math
+import time
 
 class TS2Vec:
     '''The TS2Vec model'''
@@ -56,8 +57,8 @@ class TS2Vec:
         
         self.n_epochs = 0
         self.n_iters = 0
-    
-    def fit(self, train_data, n_epochs=None, n_iters=None, verbose=False):
+
+    def fit(self, train_data, test_data, n_epochs=None, n_iters=None, verbose=False):
         ''' Training the TS2Vec model.
         
         Args:
@@ -84,20 +85,30 @@ class TS2Vec:
             train_data = centerize_vary_length_series(train_data)
                 
         train_data = train_data[~np.isnan(train_data).all(axis=2).all(axis=1)]
+        test_data = test_data[~np.isnan(test_data).all(axis=2).all(axis=1)]
         
         train_dataset = TensorDataset(torch.from_numpy(train_data).to(torch.float))
+        test_dataset = TensorDataset(torch.from_numpy(test_data).to(torch.float))
         train_loader = DataLoader(train_dataset, batch_size=min(self.batch_size, len(train_dataset)), shuffle=True, drop_last=True)
+        test_loader = DataLoader(test_dataset, batch_size=min(self.batch_size, len(test_dataset)), shuffle=True, drop_last=True)
         
         optimizer = torch.optim.AdamW(self._net.parameters(), lr=self.lr)
         
         loss_log = []
+        val_loss_log = []
+        total_loss_log = []
+        epoch_time = []
         
         while True:
             if n_epochs is not None and self.n_epochs >= n_epochs:
                 break
             
+            epoch_start_time = time.time()
             cum_loss = 0
+            cum_val_loss = 0
             n_epoch_iters = 0
+            n_val_iters = 0
+            total_cum_loss = 0
             
             interrupted = False
             for batch in train_loader:
@@ -144,20 +155,48 @@ class TS2Vec:
                 
                 if self.after_iter_callback is not None:
                     self.after_iter_callback(self, loss.item())
-            
+
+            for batch in test_loader:
+                x = batch[0].to(self.device)
+                with torch.no_grad():
+                    out = self._net(x)
+                # Compute validation loss
+                val_loss = hierarchical_contrastive_loss(
+                    out,
+                    out,
+                    temporal_unit=self.temporal_unit
+                )
+                cum_val_loss += val_loss.item()
+                n_val_iters += 1
+
             if interrupted:
                 break
             
+            total_cum_loss = cum_loss + cum_val_loss
+            total_cum_loss /= (n_epoch_iters + n_val_iters)
+            total_loss_log.append(total_cum_loss)
+
             cum_loss /= n_epoch_iters
             loss_log.append(cum_loss)
+
+            cum_val_loss /= n_val_iters
+            val_loss_log.append(cum_val_loss)
+
             if verbose:
-                print(f"Epoch #{self.n_epochs}: loss={cum_loss}")
+                print(f"Epoch #{self.n_epochs}: train loss = {cum_loss:.6f}, val loss = {cum_val_loss:.6f}, total loss = {total_cum_loss:.6f}", end=', ')
             self.n_epochs += 1
             
             if self.after_epoch_callback is not None:
                 self.after_epoch_callback(self, cum_loss)
+
+            epoch_end_time = time.time()
+            epoch_time.append(epoch_end_time - epoch_start_time)
+            if len(epoch_time) > 10:
+                epoch_time.pop(0)
+            if verbose:
+                print(f"Epoch time: {epoch_end_time - epoch_start_time:.2f} seconds, remaining time: {(np.mean(epoch_time) * (n_epochs - self.n_epochs)/60) if n_epochs is not None else float('inf'):.2f} minutes")
             
-        return loss_log
+        return total_loss_log, loss_log, val_loss_log
     
     def _eval_with_pooling(self, x, mask=None, slicing=None, encoding_window=None):
         out = self.net(x.to(self.device, non_blocking=True), mask)
