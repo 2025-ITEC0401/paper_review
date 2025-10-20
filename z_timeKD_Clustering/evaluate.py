@@ -44,18 +44,19 @@ print("\n\n============= Evaluating =============")
         
 for ds in DATASET:
     for output in OUTPUT_LEN:
-        kmean_csv = f"{RES_DIR}/csv/{ds}_o{output}_res.csv"
-        gt_csv = f"{RAWDATA_DIR}/{ds}_label.csv"
-        seq_len = 96
-        
-        match ds:
-            case 'BasicMotions':
-                var = 6
-            case 'Epilepsy':
-                var = 3
-            case 'HandMovementDirection':
-                var = 10
-            case 'Libras':
-                var = 2
-        
-        evaluate(kmeans_res_csv=kmean_csv, gt_label_csv=gt_csv, label_column_name='label', seq_len=seq_len, n_vars=var)
+        for method in ['kmeans', 'spectral']:
+            kmean_csv = f"{RES_DIR}/csv/{ds}_o{output}_{method}_res.csv"
+            gt_csv = f"{RAWDATA_DIR}/{ds}_label.csv"
+            seq_len = 96
+            
+            match ds:
+                case 'BasicMotions':
+                    var = 6
+                case 'Epilepsy':
+                    var = 3
+                case 'HandMovementDirection':
+                    var = 10
+                case 'Libras':
+                    var = 2
+            
+            evaluate(kmeans_res_csv=kmean_csv, gt_label_csv=gt_csv, label_column_name='label', seq_len=seq_len, n_vars=var)
