@@ -4,12 +4,13 @@ export PYTHONPATH=/hdd/conda_envs/envs/timeKD/lib/python3.10/site-packages:$PYTH
 export CUDA_LAUNCH_BLOCKING=1
 export OMP_NUM_THREADS=8
 
-data_paths=("BasicMotions")
+data_paths=("HandMovementDirection")
 divides=("train" "val") 
-device="cuda:0"
-num_nodes=6
+device="cuda:1"
+num_nodes=10
 input_len=96
-output_len_values=(24 36 48 96 192)
+#output_len_values=(24 36 48 96 192)
+output_len_values=(24)
 model_name=("gpt2")
 d_model=768
 l_layer=12

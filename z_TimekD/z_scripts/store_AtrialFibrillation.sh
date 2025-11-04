@@ -4,12 +4,13 @@ export PYTHONPATH=/hdd/conda_envs/envs/timeKD/lib/python3.10/site-packages:$PYTH
 export CUDA_LAUNCH_BLOCKING=1
 export OMP_NUM_THREADS=8
 
-data_paths=("Libras")
+data_paths=("AtrialFibrillation")
 divides=("train" "val") 
-device="cuda:0"
+device="cuda:1"
 num_nodes=2
 input_len=96
-output_len_values=(24 36 48 96 192)
+#output_len_values=(24 36 48 96 192)
+output_len_values=(24)
 model_name=("gpt2")
 d_model=768
 l_layer=12
@@ -27,7 +28,7 @@ for data_path in "${data_paths[@]}"; do
         --output_len $output_len \
         --model_name $model_name \
         --d_model $d_model \
-        --l_layer $l_layer #> $log_file
+        --l_layer $l_layer > $log_file
     done
   done
 done
