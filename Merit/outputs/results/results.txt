@@ -1,0 +1,48 @@
+Clustering Performance for Dataset: BasicMotions
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.7506
+  Adjusted Rand Index (ARI) : 0.3966
+  Normalized Mutual Info (NMI): 0.5025
+
+[Spectral]
+  Rand Index (RI)           : 0.7361
+  Adjusted Rand Index (ARI) : 0.2859
+  Normalized Mutual Info (NMI): 0.4454
+
+Clustering Performance for Dataset: Epilepsy
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.6514
+  Adjusted Rand Index (ARI) : 0.1064
+  Normalized Mutual Info (NMI): 0.1411
+
+[Spectral]
+  Rand Index (RI)           : 0.6611
+  Adjusted Rand Index (ARI) : 0.1016
+  Normalized Mutual Info (NMI): 0.1447
+
+Clustering Performance for Dataset: Libras
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.8673
+  Adjusted Rand Index (ARI) : 0.0377
+  Normalized Mutual Info (NMI): 0.1974
+
+[Spectral]
+  Rand Index (RI)           : 0.8831
+  Adjusted Rand Index (ARI) : 0.0416
+  Normalized Mutual Info (NMI): 0.2169
+
+Clustering Performance for Dataset: HandMovementDirection
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.5877
+  Adjusted Rand Index (ARI) : -0.0064
+  Normalized Mutual Info (NMI): 0.0064
+
+[Spectral]
+  Rand Index (RI)           : 0.6175
+  Adjusted Rand Index (ARI) : -0.0064
+  Normalized Mutual Info (NMI): 0.0056
+

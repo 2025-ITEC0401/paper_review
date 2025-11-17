@@ -1,0 +1,12 @@
+Clustering Performance for Dataset: HandMovementDirection
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.5877
+  Adjusted Rand Index (ARI) : -0.0064
+  Normalized Mutual Info (NMI): 0.0064
+
+[Spectral]
+  Rand Index (RI)           : 0.6175
+  Adjusted Rand Index (ARI) : -0.0064
+  Normalized Mutual Info (NMI): 0.0056
+
