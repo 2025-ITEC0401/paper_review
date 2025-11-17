@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 repo_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-local_dir = "/hdd/intern/Merit/llama-3.1-8b-instruct"
+local_dir = "/hdd/intern/Merit/llm-models/llama-3.1-8b-instruct"
 
 logger.info(f"Starting download of model '{repo_id}' to '{local_dir}'...")
 snapshot_download(
