@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 ROOT_PATH = "./data"
-DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras', 'ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PEMS-SF', 'PenDigits', 'StandWalkJump', 'UWaveGestureLibrary']
 
 def convert_ts_format(file_path, output_data, output_label, new_dimension, series_length, delimiter):
     all_sample_reshaped = []
@@ -88,6 +88,27 @@ for ds in DATASET:
         case 'Libras':
             new_dimension = 2
             series_length = 45
+        case 'ArticularyWordRecognition':
+            new_dimension = 9
+            series_length = 144
+        case 'AtrialFibrillation':
+            new_dimension = 2
+            series_length = 640
+        case 'NATOPS':
+            new_dimension = 24
+            series_length = 51
+        case 'PEMS-SF':
+            new_dimension = 963
+            series_length = 144
+        case 'PenDigits':
+            new_dimension = 2
+            series_length = 8
+        case 'StandWalkJump':
+            new_dimension = 4
+            series_length = 2500
+        case 'UWaveGestureLibrary':
+            new_dimension = 3
+            series_length = 315
         case _:
             print("!!! Invalid Dataset !!!")
             continue    

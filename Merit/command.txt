@@ -1,0 +1,55 @@
+nohup /hdd/conda_envs/envs/MERIT/bin/python3 -m src.train \
+--dataset_name Epilepsy \
+--root_path /hdd/dataset/newDataset \
+--llm_path /hdd/intern/MERIT/llama-3.1-8b-instruct \
+--gpu 0 \
+--epochs 10 \
+--lr 1e-3 \
+--weight_decay 5e-4 \
+--bank_size 20 \
+> Epilepsy.log 2>&1 & 
+
+nohup /hdd/conda_envs/envs/MERIT/bin/python3 -m src.train \
+--dataset_name BasicMotions \
+--root_path /hdd/dataset/newDataset \
+--llm_path /hdd/intern/MERIT/llama-3.1-8b-instruct \
+--gpu 0 \
+--epochs 10 \
+--lr 1e-3 \
+--weight_decay 5e-4 \
+--bank_size 20 \
+> BasicMotions.log 2>&1 &
+
+
+nohup /hdd/conda_envs/envs/MERIT/bin/python3 -m src.train \
+--dataset_name Libras \
+--root_path /hdd/dataset/newDataset \
+--llm_path /hdd/intern/MERIT/llama-3.1-8b-instruct \
+--gpu 1 \
+--epochs 10 \
+--lr 1e-3 \
+--weight_decay 5e-4 \
+--bank_size 20 \
+> Libras.log 2>&1 &
+
+nohup /hdd/conda_envs/envs/MERIT/bin/python3 -m src.train \
+--dataset_name HandMovementDirection \
+--root_path /hdd/dataset/newDataset \
+--llm_path /hdd/intern/MERIT/llama-3.1-8b-instruct \
+--gpu 0 \
+--epochs 10 \
+--lr 1e-3 \
+--weight_decay 5e-4 \
+--bank_size 20 \
+> HandMovementDirection.log 2>&1 &
+
+BasicMotion
+Epilepsy
+Libras
+HandMovementDirection
+
+
+/hdd/conda_envs/envs/MERIT/bin/python3 cluster.py --dataset_name BasicMotions
+/hdd/conda_envs/envs/MERIT/bin/python3 cluster.py --dataset_name Epilepsy
+/hdd/conda_envs/envs/MERIT/bin/python3 cluster.py --dataset_name Libras
+/hdd/conda_envs/envs/MERIT/bin/python3 cluster.py --dataset_name HandMovementDirection
