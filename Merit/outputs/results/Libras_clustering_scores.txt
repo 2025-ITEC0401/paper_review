@@ -1,0 +1,12 @@
+Clustering Performance for Dataset: Libras
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.8673
+  Adjusted Rand Index (ARI) : 0.0377
+  Normalized Mutual Info (NMI): 0.1974
+
+[Spectral]
+  Rand Index (RI)           : 0.8831
+  Adjusted Rand Index (ARI) : 0.0416
+  Normalized Mutual Info (NMI): 0.2169
+

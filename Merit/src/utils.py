@@ -61,6 +61,14 @@ class InfoNCELoss(torch.nn.Module):
     def forward(self, anchor, positive, negatives):
         # anchor: (1, D), positive: (1, D), negatives: (M, D)
         
+        # --- 💥💥💥 수정된 핵심 부분 💥💥💥 ---
+        # 내적을 계산하기 전에 모든 벡터를 L2 정규화하여 단위 벡터로 만듭니다.
+        # 이렇게 하면 내적 연산이 코사인 유사도와 동일해집니다.
+        anchor = F.normalize(anchor, p=2, dim=1)
+        positive = F.normalize(positive, p=2, dim=1)
+        negatives = F.normalize(negatives, p=2, dim=1)
+        # ------------------------------------
+        
         # 긍정적 쌍의 유사도
         l_pos = torch.einsum('nc,nc->n', [anchor, positive]).unsqueeze(-1) # (1, 1)
 

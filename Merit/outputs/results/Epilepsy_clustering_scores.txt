@@ -1,0 +1,12 @@
+Clustering Performance for Dataset: Epilepsy
+========================================
+[K-Means]
+  Rand Index (RI)           : 0.6514
+  Adjusted Rand Index (ARI) : 0.1064
+  Normalized Mutual Info (NMI): 0.1411
+
+[Spectral]
+  Rand Index (RI)           : 0.6611
+  Adjusted Rand Index (ARI) : 0.1016
+  Normalized Mutual Info (NMI): 0.1447
+
