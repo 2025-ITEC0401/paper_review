@@ -58,6 +58,8 @@ def save_embeddings(args):
         d_model=args.d_model,
         l_layer=args.l_layers,
     ).to(device)
+    
+    gen_prompt_emb.eval()
 
     print(args)
 
@@ -68,13 +70,14 @@ def save_embeddings(args):
     os.makedirs(emb_time_path, exist_ok=True)
     # max_token_counts = []
 
-    for i, (x, y, x_mark, y_mark) in enumerate(data_loader):
-        embeddings = gen_prompt_emb.generate_embeddings(x.to(device), y.to(device), x_mark.to(device), y_mark.to(device))
-        # max_token_counts.append(max_token_count)
+    with torch.no_grad():
+        for i, (x, y, x_mark, y_mark) in enumerate(data_loader):
+            embeddings = gen_prompt_emb.generate_embeddings(x.to(device), y.to(device), x_mark.to(device), y_mark.to(device))
+            # max_token_counts.append(max_token_count)
 
-        file_path = f"{save_path}{i}.h5"
-        with h5py.File(file_path, 'w') as hf:
-            hf.create_dataset('embeddings', data=embeddings.detach().cpu().numpy())
+            file_path = f"{save_path}{i}.h5"
+            with h5py.File(file_path, 'w') as hf:
+                hf.create_dataset('embeddings', data=embeddings.detach().cpu().numpy())
 
         # Save and visualize the first sample
         # if i >= 0:
