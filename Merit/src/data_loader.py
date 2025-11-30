@@ -45,7 +45,9 @@ def load_and_preprocess_data(dataset_name, root_path, seq_len=96, stride=1):
     - 'ETTh1', 'traffic' 등: 기존 CSV/PCA 로더 호출
     """
     # 새로운 UEA 데이터셋 리스트
-    uea_datasets = ['BasicMotions', 'DuckDuckGeese', 'Epilepsy', 'Libras', 'HandMovementDirection'] 
+    uea_datasets = ['BasicMotions', 'DuckDuckGeese', 'Epilepsy', 'Libras', 'HandMovementDirection',
+                    'AtrialFibrillation', 'StandWalkJump', 'ArticularyWordRecognition',
+                    'NATOPS', 'PenDigits', 'UWaveGestureLibrary'] 
 
     if dataset_name in uea_datasets:
         return load_uea_dataset(dataset_name, root_path)
