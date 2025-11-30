@@ -1,6 +1,6 @@
 # Merit 다운스트림 태스크 평가 결과
 
-생성 시간: 2025-11-30 21:20:05
+생성 시간: 2025-11-30 21:43:39
 
 
 ## 1. Classification 결과
@@ -40,14 +40,23 @@
 | AtrialFibrillation | One-Class SVM | 0.7667 | 0.6667 | 0.6000 | 0.6316 | 0.7250 |
 | StandWalkJump | Isolation Forest | 0.7407 | 0.6667 | 0.4444 | 0.5333 | 0.7191 |
 | StandWalkJump | One-Class SVM | 0.8148 | 0.7500 | 0.6667 | 0.7059 | 0.7840 |
+| PEMS-SF | Isolation Forest | 0.8045 | 0.2041 | 0.1754 | 0.1887 | 0.4552 |
+| PEMS-SF | One-Class SVM | 0.8000 | 0.1702 | 0.1404 | 0.1538 | 0.5895 |
 
 ## 4. Forecasting 결과
 
 | Dataset | MSE | RMSE | MAE | R² |
 |---------|-----|------|-----|-----|
 | AtrialFibrillation | 0.6727 | 0.8202 | 0.6033 | -0.5789 |
+| PEMS-SF | 1.0313 | 1.0155 | 0.8465 | 0.0224 |
 
-## 5. Representation 시각화
+## 5. Imputation 결과
+
+| Dataset | MSE | RMSE | MAE | Mask Ratio |
+|---------|-----|------|-----|------------|
+| PEMS-SF | 0.0293 | 0.1713 | 0.1414 | 0.20 |
+
+## 6. Representation 시각화
 
 
 ### AtrialFibrillation
@@ -84,7 +93,12 @@
 ![UWaveGestureLibrary t-SNE](./figures/UWaveGestureLibrary_tsne.png)
 
 
-## 6. 요약
+### PEMS-SF
+
+![PEMS-SF t-SNE](./figures/PEMS-SF_tsne.png)
+
+
+## 7. 요약
 
 - **Classification 평균 Accuracy**: 0.3221
 

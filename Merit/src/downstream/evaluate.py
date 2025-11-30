@@ -8,7 +8,8 @@ from .heads import (
     ClassificationHead,
     ClusteringHead,
     AnomalyDetectionHead,
-    ForecastingHead
+    ForecastingHead,
+    ImputationHead
 )
 
 # 데이터셋별 다운스트림 태스크 정의
@@ -19,6 +20,7 @@ DATASET_TASKS = {
     'NATOPS': ['classification'],
     'PenDigits': ['classification', 'clustering'],
     'UWaveGestureLibrary': ['classification'],
+    'PEMS-SF': ['anomaly_detection', 'forecasting', 'imputation'],
 }
 
 DATASETS = list(DATASET_TASKS.keys())
@@ -76,5 +78,10 @@ def evaluate_all_tasks(dataset_name, representations, labels, tasks):
         print(f"  [Forecasting] Evaluating...")
         forecast_head = ForecastingHead(horizon=1)
         results['forecasting'] = forecast_head.evaluate(representations)
+
+    if 'imputation' in tasks:
+        print(f"  [Imputation] Evaluating...")
+        imputation_head = ImputationHead(mask_ratio=0.2)
+        results['imputation'] = imputation_head.evaluate(representations)
 
     return results

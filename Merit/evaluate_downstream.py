@@ -101,8 +101,21 @@ def generate_markdown_report(all_results, output_dir):
                 f"{fc['mae']:.4f} | {fc['r2']:.4f} |"
             )
 
+    # Imputation 결과 표
+    lines.append("\n## 5. Imputation 결과\n")
+    lines.append("| Dataset | MSE | RMSE | MAE | Mask Ratio |")
+    lines.append("|---------|-----|------|-----|------------|")
+
+    for dataset, results in all_results.items():
+        if 'imputation' in results:
+            imp = results['imputation']
+            lines.append(
+                f"| {dataset} | {imp['mse']:.4f} | {imp['rmse']:.4f} | "
+                f"{imp['mae']:.4f} | {imp['mask_ratio']:.2f} |"
+            )
+
     # 시각화 이미지 링크
-    lines.append("\n## 5. Representation 시각화\n")
+    lines.append("\n## 6. Representation 시각화\n")
     for dataset in all_results.keys():
         lines.append(f"\n### {dataset}\n")
         lines.append(f"![{dataset} t-SNE](./figures/{dataset}_tsne.png)\n")
@@ -110,7 +123,7 @@ def generate_markdown_report(all_results, output_dir):
             lines.append(f"![{dataset} Clustering](./figures/{dataset}_clustering.png)\n")
 
     # 요약
-    lines.append("\n## 6. 요약\n")
+    lines.append("\n## 7. 요약\n")
 
     clf_accs = [r['classification']['accuracy'] for r in all_results.values() if 'classification' in r]
     if clf_accs:

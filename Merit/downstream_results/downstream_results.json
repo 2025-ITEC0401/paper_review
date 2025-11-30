@@ -115,7 +115,7 @@
       "ari": 0.060240963855421686,
       "silhouette": 0.6073218584060669,
       "n_clusters": 3,
-      "inertia": 1735.76904296875
+      "inertia": 1735.7691650390625
     },
     "anomaly_detection_if": {
       "accuracy": 0.7407407407407407,
@@ -267,7 +267,7 @@
       "ari": 0.05891436344824539,
       "silhouette": 0.388477623462677,
       "n_clusters": 10,
-      "inertia": 113795.859375
+      "inertia": 113795.8671875
     }
   },
   "UWaveGestureLibrary": {
@@ -309,6 +309,44 @@
       "recall_macro": 0.22727272727272727,
       "num_classes": 8,
       "train_size": 352,
+      "test_size": 88
+    }
+  },
+  "PEMS-SF": {
+    "dataset": "PEMS-SF",
+    "anomaly_detection_if": {
+      "accuracy": 0.8045454545454546,
+      "precision": 0.20408163265306123,
+      "recall": 0.17543859649122806,
+      "f1": 0.18867924528301888,
+      "anomaly_ratio": 0.12954545454545455,
+      "detected_ratio": 0.11136363636363636,
+      "roc_auc": 0.4552242224359855
+    },
+    "anomaly_detection_ocsvm": {
+      "accuracy": 0.8,
+      "precision": 0.1702127659574468,
+      "recall": 0.14035087719298245,
+      "f1": 0.15384615384615385,
+      "anomaly_ratio": 0.12954545454545455,
+      "detected_ratio": 0.10681818181818181,
+      "roc_auc": 0.5894828454949385
+    },
+    "forecasting": {
+      "mse": 1.0313080549240112,
+      "rmse": 1.0155333844458345,
+      "mae": 0.84654301404953,
+      "r2": 0.02240234613418579,
+      "horizon": 1,
+      "train_size": 351,
+      "test_size": 88
+    },
+    "imputation": {
+      "mse": 0.029326805844902992,
+      "rmse": 0.17125071049459326,
+      "mae": 0.14144399762153625,
+      "mask_ratio": 0.2,
+      "num_masked": 5588,
       "test_size": 88
     }
   }

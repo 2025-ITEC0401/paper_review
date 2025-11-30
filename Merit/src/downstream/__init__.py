@@ -4,7 +4,8 @@ from .heads import (
     ClassificationHead,
     ClusteringHead,
     AnomalyDetectionHead,
-    ForecastingHead
+    ForecastingHead,
+    ImputationHead
 )
 from .evaluate import evaluate_all_tasks, DATASET_TASKS, DATASETS
 from .visualize import (
@@ -18,6 +19,7 @@ __all__ = [
     'ClusteringHead',
     'AnomalyDetectionHead',
     'ForecastingHead',
+    'ImputationHead',
     'evaluate_all_tasks',
     'DATASET_TASKS',
     'DATASETS',

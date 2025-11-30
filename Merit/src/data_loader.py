@@ -47,7 +47,7 @@ def load_and_preprocess_data(dataset_name, root_path, seq_len=96, stride=1):
     # 새로운 UEA 데이터셋 리스트
     uea_datasets = ['BasicMotions', 'DuckDuckGeese', 'Epilepsy', 'Libras', 'HandMovementDirection',
                     'AtrialFibrillation', 'StandWalkJump', 'ArticularyWordRecognition',
-                    'NATOPS', 'PenDigits', 'UWaveGestureLibrary'] 
+                    'NATOPS', 'PenDigits', 'UWaveGestureLibrary', 'PEMS-SF'] 
 
     if dataset_name in uea_datasets:
         return load_uea_dataset(dataset_name, root_path)

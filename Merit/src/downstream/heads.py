@@ -215,3 +215,67 @@ class ForecastingHead:
         }
 
         return results
+
+
+class ImputationHead:
+    """Imputation 다운스트림 태스크 (Representation 기반 결측치 복원)"""
+
+    def __init__(self, mask_ratio=0.2):
+        self.mask_ratio = mask_ratio
+        self.scaler = StandardScaler()
+
+    def evaluate(self, representations):
+        """Imputation 평가 - representation의 일부를 마스킹하고 복원 능력 측정"""
+        X_scaled = self.scaler.fit_transform(representations)
+
+        # 데이터 분할
+        split_idx = int(len(X_scaled) * 0.8)
+        X_train, X_test = X_scaled[:split_idx], X_scaled[split_idx:]
+
+        # 테스트 데이터에 마스크 적용
+        np.random.seed(42)
+        mask = np.random.random(X_test.shape) < self.mask_ratio
+        X_test_masked = X_test.copy()
+        X_test_masked[mask] = 0  # 마스킹된 부분을 0으로 설정
+
+        # KNN 기반 imputation (학습 데이터의 평균으로 복원)
+        from sklearn.neighbors import KNeighborsRegressor
+
+        # 각 feature에 대해 KNN으로 복원
+        X_imputed = X_test_masked.copy()
+        knn = KNeighborsRegressor(n_neighbors=5)
+
+        for feat_idx in range(X_test.shape[1]):
+            # 마스킹되지 않은 feature들을 사용해 마스킹된 feature 예측
+            feat_mask = mask[:, feat_idx]
+            if np.sum(feat_mask) == 0:
+                continue
+
+            # 마스킹되지 않은 샘플로 학습
+            train_mask = ~mask[:, feat_idx]
+            if np.sum(train_mask) < 5:
+                continue
+
+            other_feats = np.delete(np.arange(X_test.shape[1]), feat_idx)
+            knn.fit(X_test_masked[train_mask][:, other_feats], X_test[train_mask, feat_idx])
+
+            # 마스킹된 샘플 예측
+            X_imputed[feat_mask, feat_idx] = knn.predict(X_test_masked[feat_mask][:, other_feats])
+
+        # 마스킹된 부분에 대해서만 메트릭 계산
+        true_values = X_test[mask]
+        pred_values = X_imputed[mask]
+
+        mse = mean_squared_error(true_values, pred_values)
+        mae = mean_absolute_error(true_values, pred_values)
+
+        results = {
+            'mse': float(mse),
+            'rmse': float(np.sqrt(mse)),
+            'mae': float(mae),
+            'mask_ratio': self.mask_ratio,
+            'num_masked': int(np.sum(mask)),
+            'test_size': len(X_test)
+        }
+
+        return results
