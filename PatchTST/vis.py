@@ -5,6 +5,8 @@ import os
 import argparse
 from sktime.datasets._data_io import load_from_tsfile
 from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
+from sklearn.metrics import rand_score, normalized_mutual_info_score
 
 # ---------------------------------------------------------
 # 1. 학습 로그(Loss) 시각화
@@ -69,25 +71,24 @@ def plot_dataset_sample(dataset_name, root_path):
     print(f" -> sample_{dataset_name}.png 저장 완료")
 
 # ---------------------------------------------------------
-# 3. t-SNE 시각화 (수정됨: 선 없이 점만 찍기)
+# 3. t-SNE 및 RI, NMI 계산 (수정됨)
 # ---------------------------------------------------------
 def plot_tsne(dataset_name, root_path):
-    # TRAIN 파일 대신 TEST 파일이 있으면 우선 사용 (결과 확인용이므로)
     file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TEST.ts")
     if not os.path.exists(file_path):
-        print(f"[알림] TEST 파일이 없어 TRAIN 파일로 시각화합니다.")
+        print(f"[알림] TEST 파일이 없어 TRAIN 파일로 대체합니다.")
         file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TRAIN.ts")
         if not os.path.exists(file_path): 
             print("[오류] 데이터 파일을 찾을 수 없습니다.")
             return
 
-    print(f"--- {dataset_name} t-SNE 계산 중 (잠시만 기다려주세요)... ---")
+    print(f"--- {dataset_name} 데이터 로딩 및 분석 중... ---")
     X_df, y = load_from_tsfile(file_path)
     
     n_samples = X_df.shape[0]
     X_flattened = []
     
-    # 데이터가 너무 많으면 500개만 랜덤 추출 (속도 향상 및 시각화 용이성)
+    # 데이터가 너무 많으면 500개만 샘플링 (속도 최적화)
     limit = 500
     if n_samples > limit:
         indices = np.random.choice(n_samples, limit, replace=False)
@@ -95,29 +96,44 @@ def plot_tsne(dataset_name, root_path):
         y = y[indices]
         n_samples = limit
         
-    # (Samples, Time, Channel) -> (Samples, Features) 평탄화 작업
+    # (Samples, Time, Channel) -> (Samples, Features) 평탄화
     for i in range(n_samples):
         row_data = np.concatenate([X_df.iloc[i, c].to_numpy() for c in range(X_df.shape[1])])
         X_flattened.append(row_data)
     X_flattened = np.array(X_flattened)
 
-    # t-SNE 실행
+    # -----------------------------------------------------
+    # [추가됨] RI, NMI 계산을 위한 K-Means 클러스터링
+    # -----------------------------------------------------
+    n_classes = len(np.unique(y)) # 실제 클래스 개수 파악
+    kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
+    y_pred = kmeans.fit_predict(X_flattened) # 원본 특징으로 클러스터링 수행
+
+    ri_score = rand_score(y, y_pred)
+    nmi_score = normalized_mutual_info_score(y, y_pred)
+    
+    print(f"Metrics for {dataset_name}:")
+    print(f"  > RI  (Rand Index) : {ri_score:.4f}")
+    print(f"  > NMI (Norm MI)    : {nmi_score:.4f}")
+    # -----------------------------------------------------
+
+    # t-SNE 실행 (시각화용)
+    print("... t-SNE 변환 중 ...")
     tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, n_samples-1))
     X_embedded = tsne.fit_transform(X_flattened)
 
-    # --- [수정된 시각화: Scatter Plot (점만 찍기)] ---
+    # 시각화 (Scatter Plot)
     df_plot = pd.DataFrame(X_embedded, columns=['x', 'y'])
     df_plot['class'] = y
 
     plt.figure(figsize=(10, 8))
-    
-    # 클래스(라벨)별로 색상을 다르게 하여 점 찍기
     unique_classes = np.unique(y)
     for label in unique_classes:
         subset = df_plot[df_plot['class'] == label]
         plt.scatter(subset['x'], subset['y'], label=label, alpha=0.7, s=40)
 
-    plt.title(f'{dataset_name} - t-SNE Visualization', fontsize=15)
+    # 제목에 점수 표시
+    plt.title(f'{dataset_name}\nRI: {ri_score:.4f}, NMI: {nmi_score:.4f}', fontsize=14)
     plt.xlabel("Component 1")
     plt.ylabel("Component 2")
     plt.legend(title="Class", bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -127,7 +143,7 @@ def plot_tsne(dataset_name, root_path):
     save_name = f"tsne_{dataset_name}.png"
     plt.savefig(save_name)
     plt.close()
-    print(f" -> {save_name} 저장 완료! (선 없이 점으로 시각화됨)")
+    print(f" -> {save_name} 저장 완료 (이미지 제목에 점수 포함됨)")
 
 # ---------------------------------------------------------
 # 메인 실행부
