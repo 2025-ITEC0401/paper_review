@@ -69,24 +69,25 @@ def plot_dataset_sample(dataset_name, root_path):
     print(f" -> sample_{dataset_name}.png 저장 완료")
 
 # ---------------------------------------------------------
-# 3. t-SNE 시각화 (요청하신 선 연결 스타일 적용)
+# 3. t-SNE 시각화 (수정됨: 선 없이 점만 찍기)
 # ---------------------------------------------------------
 def plot_tsne(dataset_name, root_path):
+    # TRAIN 파일 대신 TEST 파일이 있으면 우선 사용 (결과 확인용이므로)
     file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TEST.ts")
     if not os.path.exists(file_path):
-        print(f"[오류] {file_path} 없음. TRAIN 파일로 대체 시도...")
+        print(f"[알림] TEST 파일이 없어 TRAIN 파일로 시각화합니다.")
         file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TRAIN.ts")
-        if not os.path.exists(file_path): return
+        if not os.path.exists(file_path): 
+            print("[오류] 데이터 파일을 찾을 수 없습니다.")
+            return
 
-    print(f"--- {dataset_name} t-SNE 계산 중 (시간이 걸릴 수 있음)... ---")
+    print(f"--- {dataset_name} t-SNE 계산 중 (잠시만 기다려주세요)... ---")
     X_df, y = load_from_tsfile(file_path)
     
-    # 데이터 전처리: (Samples, Channels, Time) -> (Samples, Flattened Features)
-    # t-SNE는 2차원 입력을 받으므로 시계열을 1줄로 폅니다.
     n_samples = X_df.shape[0]
     X_flattened = []
     
-    # 너무 많으면 샘플링 (속도 위해 최대 500개만)
+    # 데이터가 너무 많으면 500개만 랜덤 추출 (속도 향상 및 시각화 용이성)
     limit = 500
     if n_samples > limit:
         indices = np.random.choice(n_samples, limit, replace=False)
@@ -94,8 +95,8 @@ def plot_tsne(dataset_name, root_path):
         y = y[indices]
         n_samples = limit
         
+    # (Samples, Time, Channel) -> (Samples, Features) 평탄화 작업
     for i in range(n_samples):
-        # 각 채널의 데이터를 이어붙임
         row_data = np.concatenate([X_df.iloc[i, c].to_numpy() for c in range(X_df.shape[1])])
         X_flattened.append(row_data)
     X_flattened = np.array(X_flattened)
@@ -104,36 +105,29 @@ def plot_tsne(dataset_name, root_path):
     tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, n_samples-1))
     X_embedded = tsne.fit_transform(X_flattened)
 
-    # --- [요청하신 시각화 스타일 적용] ---
+    # --- [수정된 시각화: Scatter Plot (점만 찍기)] ---
     df_plot = pd.DataFrame(X_embedded, columns=['x', 'y'])
     df_plot['class'] = y
 
-    plt.figure(figsize=(12, 10))
-    classes = sorted(df_plot['class'].unique())
+    plt.figure(figsize=(10, 8))
     
-    # 색상맵 자동 생성
-    cmap = plt.get_cmap('tab10')
-    
-    for idx, cls in enumerate(classes):
-        subset = df_plot[df_plot['class'] == cls]
-        # X축 좌표 기준으로 정렬 (선이 꼬이지 않게)
-        subset = subset.sort_values(by='x')
-        
-        color = cmap(idx % 10)
-        plt.plot(subset['x'], subset['y'], marker='o', linestyle='-', 
-                 linewidth=1.5, markersize=6, alpha=0.8, label=cls, color=color)
+    # 클래스(라벨)별로 색상을 다르게 하여 점 찍기
+    unique_classes = np.unique(y)
+    for label in unique_classes:
+        subset = df_plot[df_plot['class'] == label]
+        plt.scatter(subset['x'], subset['y'], label=label, alpha=0.7, s=40)
 
-    plt.title(f'{dataset_name} - t-SNE (Connected by Class)', fontsize=15)
+    plt.title(f'{dataset_name} - t-SNE Visualization', fontsize=15)
     plt.xlabel("Component 1")
     plt.ylabel("Component 2")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.legend(title="Class", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     
     save_name = f"tsne_{dataset_name}.png"
     plt.savefig(save_name)
     plt.close()
-    print(f" -> {save_name} 저장 완료!")
+    print(f" -> {save_name} 저장 완료! (선 없이 점으로 시각화됨)")
 
 # ---------------------------------------------------------
 # 메인 실행부
