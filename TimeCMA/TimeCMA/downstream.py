@@ -230,43 +230,47 @@ def evaluate_clustering(features, cluster_labels, true_labels=None):
     return metrics
 
 
-def visualize_clusters(features, cluster_labels, output_path, method="tsne"):
+def visualize_clusters(features, cluster_labels, output_path, method="tsne", metrics=None):
     """
     Visualize clustering results using dimensionality reduction
     """
     plt.figure(figsize=(12, 8))
-    
-    # Dimensionality reduction
+
     if method == "tsne":
         if features.shape[0] > 5000:
-            # Subsample for faster computation
             indices = np.random.choice(features.shape[0], 5000, replace=False)
             features_reduced = features[indices]
             labels_reduced = cluster_labels[indices]
         else:
             features_reduced = features
             labels_reduced = cluster_labels
-            
         reducer = TSNE(n_components=2, random_state=42, perplexity=30)
         features_2d = reducer.fit_transform(features_reduced)
-        
     elif method == "pca":
         reducer = PCA(n_components=2, random_state=42)
         features_2d = reducer.fit_transform(features)
         labels_reduced = cluster_labels
-    
-    # Plot
-    scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1], 
-                         c=labels_reduced, cmap='viridis', 
-                         alpha=0.6, s=50)
+
+    scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1],
+                          c=labels_reduced, cmap='viridis',
+                          alpha=0.6, s=50)
     plt.colorbar(scatter, label='Cluster')
-    plt.title(f'Clustering Visualization ({method.upper()})')
+    
+    title_str = f'Clustering Visualization ({method.upper()})'
+    if metrics:
+        ri_score = metrics.get('rand_score')
+        nmi_score = metrics.get('normalized_mutual_info_score')
+        ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+        nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+        title_str += f'\n({ri_str}, {nmi_str})'
+    plt.title(title_str)
+
     plt.xlabel('Component 1')
     plt.ylabel('Component 2')
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    
+
     print(f"Visualization saved to {output_path}")
 
 
@@ -420,31 +424,35 @@ def main():
     if args.visualize:
         print("\nGenerating visualizations...")
         
-        # t-SNE visualization
         vis_path_tsne = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_tsne.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_tsne.png"
         )
-        visualize_clusters(features, cluster_labels, vis_path_tsne, method="tsne")
-        
-        # PCA visualization
+        visualize_clusters(features, cluster_labels, vis_path_tsne, method="tsne", metrics=metrics)
+
         vis_path_pca = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_pca.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_pca.png"
         )
-        visualize_clusters(features, cluster_labels, vis_path_pca, method="pca")
-        
+        visualize_clusters(features, cluster_labels, vis_path_pca, method="pca", metrics=metrics)
+
         # Cluster size distribution
         plt.figure(figsize=(10, 6))
         unique, counts = np.unique(cluster_labels, return_counts=True)
         plt.bar(unique, counts)
         plt.xlabel('Cluster ID')
         plt.ylabel('Number of Samples')
-        plt.title('Cluster Size Distribution')
+        
+        title_str = 'Cluster Size Distribution'
+        if metrics:
+            ri_score = metrics.get('rand_score')
+            nmi_score = metrics.get('normalized_mutual_info_score')
+            ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+            nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+            title_str += f'\n({ri_str}, {nmi_str})'
+        plt.title(title_str)
+        
         plt.tight_layout()
         dist_path = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_distribution.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_distribution.png"
         )
         plt.savefig(dist_path, dpi=300, bbox_inches='tight')
         plt.close()
