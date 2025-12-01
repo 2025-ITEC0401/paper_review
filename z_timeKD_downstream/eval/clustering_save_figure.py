@@ -9,13 +9,15 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+DATASET = ['ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PenDigits', 'StandWalkJump', 'UWaveGestureLibrary']
 # OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
 OUTPUT_LEN_LIST = [24]
+METHOD_LIST = ['kmeans', 'spectral']
 TYPE = ['train', 'val']
-CSV_DIR = './Result/csv'
-RES_ROOT_DIR = './Result'
-ROOT_DIR = './data'
+CSV_DIR = '../Result_csv'
+FIG_DIR = '../Result_fig'
+RES_ROOT_DIR = '../Result'
+ROOT_DIR = '../data'
 KEY = 'embeddings'
 
 print("\n\n============= Save Figure =============")
@@ -34,10 +36,10 @@ def concatenation(h5_path, n_vars):
 idx = 1
 for ds in DATASET:
     for output_len in OUTPUT_LEN_LIST:
-        for method in ['kmeans', 'spectral']:
-            csv_rawfile = f'{CSV_DIR}/{ds}_o{output_len}_{method}_res.csv'
-            csv_file = f'{RES_ROOT_DIR}/{ds}_o{output_len}_{method}_tSNE_res.csv'
-            fig_path = f'{RES_ROOT_DIR}/{ds}_o{output_len}_{method}_tSNE_res.png'
+        for method in METHOD_LIST:
+            csv_rawfile = f'{CSV_DIR}/{ds}_o{output_len}_clustering_{method}_res.csv'
+            csv_file = f'{FIG_DIR}/{ds}_o{output_len}_clustering_{method}_tSNE_rawData.csv'
+            fig_path = f'{FIG_DIR}/{ds}_o{output_len}_clustering_{method}_tSNE_res.png'
             h5_train_path = f"{ROOT_DIR}/{ds}_o{output_len}_{TYPE[0]}_consolidated.h5"
             h5_test_path = f"{ROOT_DIR}/{ds}_o{output_len}_{TYPE[1]}_consolidated.h5"
             
@@ -46,20 +48,24 @@ for ds in DATASET:
                 idx += 1
                 continue
             
-            print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Dataset: {ds}, Output: {output_len}... ", end="")
+            print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST) * len(METHOD_LIST)}) Dataset: {ds}, Output: {output_len}, Method: {method}... ", end="")
             idx += 1
             
             cluster_labels_df = pd.read_csv(csv_rawfile)
             
             match ds:
-                case 'BasicMotions':
-                    var = 6
-                case 'Epilepsy':
-                    var = 3
-                case 'HandMovementDirection':
-                    var = 10
-                case 'Libras':
+                case 'ArticularyWordRecognition':
+                    var = 9
+                case 'AtrialFibrillation':
                     var = 2
+                case 'NATOPS':
+                    var = 24
+                case 'PenDigits':
+                    var = 2
+                case 'StandWalkJump':
+                    var = 4
+                case 'UWaveGestureLibrary':
+                    var = 3
             
             features_val_concat = concatenation(h5_test_path, n_vars=var)
             features_train_concat = concatenation(h5_train_path, n_vars=var)
