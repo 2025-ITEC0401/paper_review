@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+# evaluate_downstream.py
+# 모든 데이터셋에 대해 다운스트림 태스크 평가 및 결과 정리
+
+import os
+import sys
+import json
+import argparse
+from datetime import datetime
+
+import numpy as np
+
+# 현재 디렉토리를 기준으로 src 모듈 import
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.downstream import (
+    DATASET_TASKS, DATASETS,
+    evaluate_all_tasks,
+    visualize_representations,
+    visualize_clustering,
+    create_summary_figure
+)
+from src.downstream.evaluate import load_representations
+
+
+def generate_markdown_report(all_results, output_dir):
+    """마크다운 리포트 생성"""
+    lines = []
+    lines.append("# Merit 다운스트림 태스크 평가 결과\n")
+    lines.append(f"생성 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    # Classification 결과 표
+    lines.append("\n## 1. Classification 결과\n")
+    lines.append("| Dataset | Accuracy | F1 (Macro) | F1 (Weighted) | CV Accuracy | Classes |")
+    lines.append("|---------|----------|------------|---------------|-------------|---------|")
+
+    for dataset, results in all_results.items():
+        if 'classification' in results:
+            clf = results['classification']
+            cv_mean = clf.get('cv_accuracy_mean', 0)
+            cv_std = clf.get('cv_accuracy_std', 0)
+            lines.append(
+                f"| {dataset} | {clf['accuracy']:.4f} | {clf['f1_macro']:.4f} | "
+                f"{clf['f1_weighted']:.4f} | {cv_mean:.4f}±{cv_std:.4f} | {clf['num_classes']} |"
+            )
+
+    # Classification 방법론 비교
+    lines.append("\n### Classification 방법론 비교 (Accuracy)\n")
+    lines.append("| Dataset | SVM | KNN | Random Forest |")
+    lines.append("|---------|-----|-----|---------------|")
+
+    for dataset, results in all_results.items():
+        if 'classification' in results:
+            svm_acc = results['classification']['accuracy']
+            knn_acc = results.get('classification_knn', {}).get('accuracy', '-')
+            rf_acc = results.get('classification_rf', {}).get('accuracy', '-')
+            knn_str = f"{knn_acc:.4f}" if isinstance(knn_acc, float) else knn_acc
+            rf_str = f"{rf_acc:.4f}" if isinstance(rf_acc, float) else rf_acc
+            lines.append(f"| {dataset} | {svm_acc:.4f} | {knn_str} | {rf_str} |")
+
+    # Clustering 결과 표
+    lines.append("\n## 2. Clustering 결과\n")
+    lines.append("| Dataset | NMI | RI | ARI | Silhouette | Clusters |")
+    lines.append("|---------|-----|-----|-----|------------|----------|")
+
+    for dataset, results in all_results.items():
+        if 'clustering' in results:
+            cl = results['clustering']
+            lines.append(
+                f"| {dataset} | {cl['nmi']:.4f} | {cl['ri']:.4f} | {cl['ari']:.4f} | "
+                f"{cl['silhouette']:.4f} | {cl['n_clusters']} |"
+            )
+
+    # Anomaly Detection 결과 표
+    lines.append("\n## 3. Anomaly Detection 결과\n")
+    lines.append("| Dataset | Method | Accuracy | Precision | Recall | F1 | ROC-AUC |")
+    lines.append("|---------|--------|----------|-----------|--------|-----|---------|")
+
+    for dataset, results in all_results.items():
+        for key in ['anomaly_detection_if', 'anomaly_detection_ocsvm']:
+            if key in results:
+                ad = results[key]
+                method = 'Isolation Forest' if 'if' in key else 'One-Class SVM'
+                roc = f"{ad.get('roc_auc', '-'):.4f}" if isinstance(ad.get('roc_auc'), float) else '-'
+                lines.append(
+                    f"| {dataset} | {method} | {ad.get('accuracy', 0):.4f} | "
+                    f"{ad.get('precision', 0):.4f} | {ad.get('recall', 0):.4f} | "
+                    f"{ad.get('f1', 0):.4f} | {roc} |"
+                )
+
+    # Forecasting 결과 표
+    lines.append("\n## 4. Forecasting 결과\n")
+    lines.append("| Dataset | MSE | RMSE | MAE | R² |")
+    lines.append("|---------|-----|------|-----|-----|")
+
+    for dataset, results in all_results.items():
+        if 'forecasting' in results:
+            fc = results['forecasting']
+            lines.append(
+                f"| {dataset} | {fc['mse']:.4f} | {fc['rmse']:.4f} | "
+                f"{fc['mae']:.4f} | {fc['r2']:.4f} |"
+            )
+
+    # Imputation 결과 표
+    lines.append("\n## 5. Imputation 결과\n")
+    lines.append("| Dataset | MSE | RMSE | MAE | Mask Ratio |")
+    lines.append("|---------|-----|------|-----|------------|")
+
+    for dataset, results in all_results.items():
+        if 'imputation' in results:
+            imp = results['imputation']
+            lines.append(
+                f"| {dataset} | {imp['mse']:.4f} | {imp['rmse']:.4f} | "
+                f"{imp['mae']:.4f} | {imp['mask_ratio']:.2f} |"
+            )
+
+    # 시각화 이미지 링크
+    lines.append("\n## 6. Representation 시각화\n")
+    for dataset in all_results.keys():
+        lines.append(f"\n### {dataset}\n")
+        lines.append(f"![{dataset} t-SNE](./figures/{dataset}_tsne.png)\n")
+        if 'clustering' in all_results[dataset]:
+            lines.append(f"![{dataset} Clustering](./figures/{dataset}_clustering.png)\n")
+
+    # 요약
+    lines.append("\n## 7. 요약\n")
+
+    clf_accs = [r['classification']['accuracy'] for r in all_results.values() if 'classification' in r]
+    if clf_accs:
+        lines.append(f"- **Classification 평균 Accuracy**: {np.mean(clf_accs):.4f}\n")
+
+    clust_nmis = [r['clustering']['nmi'] for r in all_results.values() if 'clustering' in r]
+    if clust_nmis:
+        lines.append(f"- **Clustering 평균 NMI**: {np.mean(clust_nmis):.4f}\n")
+
+    lines.append("\n---\n")
+    lines.append("*Generated by Merit Downstream Evaluation Pipeline*\n")
+
+    report_path = os.path.join(output_dir, 'downstream_results.md')
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+
+    return report_path
+
+
+def main(args):
+    print("=" * 60)
+    print("Merit Downstream Task Evaluation")
+    print("=" * 60)
+
+    # 출력 디렉토리 생성
+    os.makedirs(args.output_dir, exist_ok=True)
+    figures_dir = os.path.join(args.output_dir, 'figures')
+    os.makedirs(figures_dir, exist_ok=True)
+
+    all_results = {}
+
+    for dataset in DATASETS:
+        print(f"\n{'='*40}")
+        print(f"Evaluating: {dataset}")
+        print(f"{'='*40}")
+
+        # Representations 로드
+        representations, labels = load_representations(dataset, args.reps_dir)
+
+        if representations is None:
+            print(f"  Skipping {dataset} - representations not found")
+            continue
+
+        print(f"  Representations shape: {representations.shape}")
+        print(f"  Labels shape: {labels.shape if labels is not None else 'None'}")
+
+        # 해당 데이터셋의 태스크 가져오기
+        tasks = DATASET_TASKS.get(dataset, ['classification'])
+        print(f"  Tasks: {tasks}")
+
+        # 다운스트림 태스크 평가
+        results = evaluate_all_tasks(dataset, representations, labels, tasks)
+
+        # 시각화
+        print(f"  [Visualization] Creating t-SNE plot...")
+        visualize_representations(representations, labels, dataset, figures_dir, method='tsne')
+
+        if 'clustering' in tasks and '_cluster_labels' in results:
+            print(f"  [Visualization] Creating clustering plot...")
+            visualize_clustering(
+                representations,
+                results['_cluster_labels'],
+                labels,
+                dataset,
+                figures_dir
+            )
+
+        # 내부 데이터 제거 후 저장
+        results_clean = {k: v for k, v in results.items() if not k.startswith('_')}
+        all_results[dataset] = results_clean
+
+        # 결과 출력
+        print(f"\n  Results for {dataset}:")
+        for task, task_results in results_clean.items():
+            if task == 'dataset':
+                continue
+            if isinstance(task_results, dict):
+                print(f"    {task}:")
+                for metric, value in task_results.items():
+                    if isinstance(value, float):
+                        print(f"      {metric}: {value:.4f}")
+                    elif not isinstance(value, (list, np.ndarray)):
+                        print(f"      {metric}: {value}")
+
+    # Summary figure
+    print("\n[Summary] Creating summary figures...")
+    create_summary_figure(all_results, figures_dir)
+
+    # JSON 결과 저장
+    json_path = os.path.join(args.output_dir, 'downstream_results.json')
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(all_results, f, indent=2, default=str)
+    print(f"\nJSON results saved to: {json_path}")
+
+    # 마크다운 리포트 생성
+    report_path = generate_markdown_report(all_results, args.output_dir)
+    print(f"Markdown report saved to: {report_path}")
+
+    print("\n" + "=" * 60)
+    print("Evaluation Complete!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Evaluate downstream tasks on Merit representations")
+    parser.add_argument('--reps_dir', type=str, default='./saved_reps',
+                        help='Directory containing saved representations')
+    parser.add_argument('--output_dir', type=str, default='./downstream_results',
+                        help='Directory to save evaluation results')
+
+    args = parser.parse_args()
+    main(args)
