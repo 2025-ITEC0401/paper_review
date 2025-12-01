@@ -8,14 +8,14 @@ import random
 from torch.utils.data import DataLoader
 from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from models.TimeCMA import Dual
-import tensorflow as tf
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering 
 from sklearn.metrics import rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import warnings
+
 warnings.filterwarnings('ignore')
 
 def parse_args():
@@ -64,105 +64,43 @@ def set_seed(seed):
 def extract_features(model, data_loader, device, feature_type="latent"):
     """
     Extract features from the model for clustering
-    Args:
-        model: trained TimeCMA model
-        data_loader: DataLoader for the dataset
-        device: torch device
-        feature_type: type of features to extract
-            - "latent": features from cross-modal alignment layer
-            - "embedding": LLM embeddings
-            - "raw": normalized input data
     """
     model.eval()
     features_list = []
     labels_list = []
-    
+
     with torch.no_grad():
         for batch_x, batch_y, batch_x_mark, batch_y_mark, embeddings in data_loader:
             batch_x = batch_x.float().to(device)
             batch_x_mark = batch_x_mark.float().to(device)
             embeddings = embeddings.float().to(device)
-            
+
             if feature_type == "raw":
-                # Use normalized raw input
                 normalized_data = model.normalize_layers(batch_x, 'norm')
-                features = normalized_data.reshape(normalized_data.shape[0], -1)  # [B, L*N]
-                
+                features = normalized_data.reshape(normalized_data.shape[0], -1) 
             elif feature_type == "embedding":
-                # Use LLM embeddings
-                embeddings_squeezed = embeddings.squeeze(-1)  # [B, E, N]
-                features = embeddings_squeezed.reshape(embeddings_squeezed.shape[0], -1)  # [B, E*N]
-                
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                features = embeddings_squeezed.reshape(embeddings_squeezed.shape[0], -1) 
             elif feature_type == "latent":
-                # Extract latent features from cross-modal alignment
-                # Forward pass through encoder and cross-modal alignment
                 input_data = model.normalize_layers(batch_x, 'norm')
-                input_data = input_data.permute(0, 2, 1)  # [B, N, L]
-                input_data = model.length_to_feature(input_data)  # [B, N, C]
-                
-                embeddings_squeezed = embeddings.squeeze(-1)  # [B, E, N]
-                embeddings_squeezed = embeddings_squeezed.permute(0, 2, 1)  # [B, N, E]
-                
-                # Encoder
-                enc_out = model.ts_encoder(input_data)  # [B, N, C]
-                enc_out = enc_out.permute(0, 2, 1)  # [B, C, N]
-                prompt_enc = model.prompt_encoder(embeddings_squeezed)  # [B, N, E]
-                prompt_enc = prompt_enc.permute(0, 2, 1)  # [B, E, N]
-                
-                # Cross-modal features
-                cross_out = model.cross(enc_out, prompt_enc, prompt_enc)  # [B, C, N]
-                features = cross_out.reshape(cross_out.shape[0], -1)  # [B, C*N]
-            
+                input_data = input_data.permute(0, 2, 1) 
+                input_data = model.length_to_feature(input_data) 
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                embeddings_squeezed = embeddings_squeezed.permute(0, 2, 1) 
+                enc_out = model.ts_encoder(input_data) 
+                enc_out = enc_out.permute(0, 2, 1) 
+                prompt_enc = model.prompt_encoder(embeddings_squeezed) 
+                prompt_enc = prompt_enc.permute(0, 2, 1) 
+                cross_out = model.cross(enc_out, prompt_enc, prompt_enc) 
+                features = cross_out.reshape(cross_out.shape[0], -1) 
+
             features_list.append(features.cpu().numpy())
             labels_list.append(batch_y.cpu().numpy())
-    
-    # Concatenate all batches
+
     all_features = np.concatenate(features_list, axis=0)
     all_labels = np.concatenate(labels_list, axis=0)
-    
+
     return all_features, all_labels
-
-
-def spectral_clustering_tf(features, n_clusters, gamma=None, random_state=42):
-    """
-    Perform spectral clustering using TensorFlow for eigendecomposition.
-    """
-    if features.ndim != 2:
-        raise ValueError("features should be a 2D array")
-
-    features_tf = tf.convert_to_tensor(features, dtype=tf.float32)
-    num_samples = tf.shape(features_tf)[0]
-
-    # Pairwise squared Euclidean distances.
-    squared_norms = tf.reduce_sum(tf.square(features_tf), axis=1, keepdims=True)
-    pairwise_sq_dists = squared_norms - 2.0 * tf.linalg.matmul(features_tf, features_tf, transpose_b=True) + tf.transpose(squared_norms)
-    pairwise_sq_dists = tf.maximum(pairwise_sq_dists, 0.0)
-
-    if gamma is None:
-        mean_distance = tf.reduce_mean(pairwise_sq_dists)
-        gamma = tf.math.sqrt(tf.maximum(mean_distance, 1e-8))
-    gamma = tf.convert_to_tensor(gamma, dtype=tf.float32)
-
-    affinity = tf.exp(-pairwise_sq_dists / (2.0 * tf.square(gamma) + 1e-8))
-    affinity = tf.linalg.set_diag(affinity, tf.zeros([num_samples], dtype=tf.float32))
-
-    degree = tf.reduce_sum(affinity, axis=1)
-    degree_safe = tf.where(degree > 1e-8, degree, tf.ones_like(degree) * 1e-8)
-    laplacian = tf.linalg.diag(degree_safe) - affinity
-
-    degree_inv_sqrt = tf.linalg.diag(tf.math.rsqrt(degree_safe))
-    normalized_laplacian = tf.linalg.matmul(tf.linalg.matmul(degree_inv_sqrt, laplacian), degree_inv_sqrt)
-
-    eigenvalues, eigenvectors = tf.linalg.eigh(normalized_laplacian)
-    smallest_indices = tf.argsort(eigenvalues)[:n_clusters]
-    spectral_embeddings = tf.gather(eigenvectors, smallest_indices, axis=1)
-    spectral_embeddings = tf.math.l2_normalize(spectral_embeddings, axis=1)
-
-    spectral_embeddings_np = spectral_embeddings.numpy()
-    kmeans_model = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
-    cluster_labels = kmeans_model.fit_predict(spectral_embeddings_np)
-
-    return cluster_labels, kmeans_model
 
 
 def perform_clustering(features, method="kmeans", n_clusters=2):
@@ -171,16 +109,14 @@ def perform_clustering(features, method="kmeans", n_clusters=2):
     """
     if method == "kmeans":
         clustering_model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        cluster_labels = clustering_model.fit_predict(features)
+        
     elif method == "spectral":
-        cluster_labels, clustering_model = spectral_clustering_tf(
-            features,
-            n_clusters=n_clusters,
-            random_state=42
-        )
+        clustering_model = SpectralClustering(n_clusters=n_clusters, random_state=42, 
+                                  affinity='nearest_neighbors', n_neighbors=10, n_init=10)
     else:
         raise ValueError(f"Unknown clustering method: {method}")
 
+    cluster_labels = clustering_model.fit_predict(features)
     return cluster_labels, clustering_model
 
 
