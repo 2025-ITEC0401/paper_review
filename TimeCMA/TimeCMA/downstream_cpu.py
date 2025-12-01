@@ -15,6 +15,7 @@ import seaborn as sns
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import warnings
+
 warnings.filterwarnings('ignore')
 
 def parse_args():
@@ -63,62 +64,42 @@ def set_seed(seed):
 def extract_features(model, data_loader, device, feature_type="latent"):
     """
     Extract features from the model for clustering
-    Args:
-        model: trained TimeCMA model
-        data_loader: DataLoader for the dataset
-        device: torch device
-        feature_type: type of features to extract
-            - "latent": features from cross-modal alignment layer
-            - "embedding": LLM embeddings
-            - "raw": normalized input data
     """
     model.eval()
     features_list = []
     labels_list = []
-    
+
     with torch.no_grad():
         for batch_x, batch_y, batch_x_mark, batch_y_mark, embeddings in data_loader:
             batch_x = batch_x.float().to(device)
             batch_x_mark = batch_x_mark.float().to(device)
             embeddings = embeddings.float().to(device)
-            
+
             if feature_type == "raw":
-                # Use normalized raw input
                 normalized_data = model.normalize_layers(batch_x, 'norm')
-                features = normalized_data.reshape(normalized_data.shape[0], -1)  # [B, L*N]
-                
+                features = normalized_data.reshape(normalized_data.shape[0], -1) 
             elif feature_type == "embedding":
-                # Use LLM embeddings
-                embeddings_squeezed = embeddings.squeeze(-1)  # [B, E, N]
-                features = embeddings_squeezed.reshape(embeddings_squeezed.shape[0], -1)  # [B, E*N]
-                
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                features = embeddings_squeezed.reshape(embeddings_squeezed.shape[0], -1) 
             elif feature_type == "latent":
-                # Extract latent features from cross-modal alignment
-                # Forward pass through encoder and cross-modal alignment
                 input_data = model.normalize_layers(batch_x, 'norm')
-                input_data = input_data.permute(0, 2, 1)  # [B, N, L]
-                input_data = model.length_to_feature(input_data)  # [B, N, C]
-                
-                embeddings_squeezed = embeddings.squeeze(-1)  # [B, E, N]
-                embeddings_squeezed = embeddings_squeezed.permute(0, 2, 1)  # [B, N, E]
-                
-                # Encoder
-                enc_out = model.ts_encoder(input_data)  # [B, N, C]
-                enc_out = enc_out.permute(0, 2, 1)  # [B, C, N]
-                prompt_enc = model.prompt_encoder(embeddings_squeezed)  # [B, N, E]
-                prompt_enc = prompt_enc.permute(0, 2, 1)  # [B, E, N]
-                
-                # Cross-modal features
-                cross_out = model.cross(enc_out, prompt_enc, prompt_enc)  # [B, C, N]
-                features = cross_out.reshape(cross_out.shape[0], -1)  # [B, C*N]
-            
+                input_data = input_data.permute(0, 2, 1) 
+                input_data = model.length_to_feature(input_data) 
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                embeddings_squeezed = embeddings_squeezed.permute(0, 2, 1) 
+                enc_out = model.ts_encoder(input_data) 
+                enc_out = enc_out.permute(0, 2, 1) 
+                prompt_enc = model.prompt_encoder(embeddings_squeezed) 
+                prompt_enc = prompt_enc.permute(0, 2, 1) 
+                cross_out = model.cross(enc_out, prompt_enc, prompt_enc) 
+                features = cross_out.reshape(cross_out.shape[0], -1) 
+
             features_list.append(features.cpu().numpy())
             labels_list.append(batch_y.cpu().numpy())
-    
-    # Concatenate all batches
+
     all_features = np.concatenate(features_list, axis=0)
     all_labels = np.concatenate(labels_list, axis=0)
-    
+
     return all_features, all_labels
 
 
