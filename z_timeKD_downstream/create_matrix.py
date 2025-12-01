@@ -4,8 +4,9 @@ import os
 from glob import glob
 
 EMBEDDING_KEY = 'embeddings'
-DATASET_LIST = ['ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PenDigits', 'PEMS-SF', 'StandWalkJump', 'UWaveGestureLibrary']
+# DATASET_LIST = ['ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PenDigits', 'PEMS-SF', 'StandWalkJump', 'UWaveGestureLibrary']
 # OUTPUT_LIST = [24, 36, 48, 96, 192]
+DATASET_LIST = ['ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PenDigits', 'StandWalkJump', 'UWaveGestureLibrary']
 OUTPUT_LIST = [24]
 TYPE = ['train', 'val']
 idx = 1
