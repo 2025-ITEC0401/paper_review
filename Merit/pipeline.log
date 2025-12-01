@@ -1,0 +1,30 @@
+nohup: ignoring input
+==========================================
+Merit Training Pipeline Started
+Start Time: 2025. 11. 30. (일) 20:03:16 KST
+==========================================
+[GPU 0] Starting ArticularyWordRecognition...
+GPU 0 PID: 3487497
+GPU 1 PID: 3487498
+
+Training running in background...
+Check logs in: /home/intern/Merit/logs/
+
+To monitor progress:
+[GPU 1] Starting UWaveGestureLibrary...
+  tail -f logs/*.log
+
+To check if still running:
+  ps aux | grep src.train
+[GPU 1] UWaveGestureLibrary done. 2025. 11. 30. (일) 20:17:40 KST
+[GPU 1] Starting NATOPS...
+[GPU 0] ArticularyWordRecognition done. 2025. 11. 30. (일) 20:17:58 KST
+[GPU 0] Starting PenDigits...
+[GPU 1] NATOPS done. 2025. 11. 30. (일) 20:31:02 KST
+[GPU 1] Starting StandWalkJump...
+[GPU 0] PenDigits done. 2025. 11. 30. (일) 20:31:04 KST
+[GPU 0] Starting AtrialFibrillation...
+[GPU 1] StandWalkJump done. 2025. 11. 30. (일) 20:46:09 KST
+[GPU 1] All tasks completed!
+[GPU 0] AtrialFibrillation done. 2025. 11. 30. (일) 20:49:11 KST
+[GPU 0] All tasks completed!
