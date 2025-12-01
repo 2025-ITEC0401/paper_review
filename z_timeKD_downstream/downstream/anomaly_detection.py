@@ -2,8 +2,6 @@ import h5py
 import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.ensemble import IsolationForest
 
 ROOT_DIR = '../data'
@@ -13,14 +11,13 @@ DATASET = ['AtrialFibrillation', 'StandWalkJump']
 OUTPUT_LEN_LIST = [24]
 TYPE = ['train', 'val']
 RES_DIR = '../Result_csv'
-FIG_DIR = '../Result_fig'
 KEY = 'embeddings'
 CONTAMINATION = 0.05
 
 os.makedirs(RES_DIR, exist_ok=True)
-os.makedirs(FIG_DIR, exist_ok=True)
 
-def run_isolation_forest(train_file, test_file, output_csv, output_figure):
+
+def run_isolation_forest(train_file, test_file, output_csv):
     print("Loading Data from Embeddings...")
     print(f"- Train: {train_file}")
     print(f"- Val: {test_file}")
@@ -48,11 +45,6 @@ def run_isolation_forest(train_file, test_file, output_csv, output_figure):
     
     anomalies_idx = np.where(val_scores > threshold)[0]
     
-    print("\n[Result]")
-    print(f"- The number of total validation data: {len(val_data)}")
-    print(f"- The number of found anormal data: {len(anomalies_idx)}")
-    print(f"- Anormal data ratio: {len(anomalies_idx) / len(val_data) * 100:.2f}%\n\n")
-    
     result_df = pd.DataFrame({
         'window_index': range(len(val_data)),
         'anomaly_score': val_scores,
@@ -61,31 +53,8 @@ def run_isolation_forest(train_file, test_file, output_csv, output_figure):
     })
     
     result_df.to_csv(output_csv, index=False)
-    print(f"Result Saved: {output_csv}\n")
-    
-    plt.figure(figsize=(14, 10))
-    
-    # (A) 점수 분포 비교 (Histogram)
-    plt.subplot(2, 1, 1)
-    sns.histplot(train_scores, label='Train Scores (Baseline)', color='blue', alpha=0.3, kde=True)
-    sns.histplot(val_scores, label='Val Scores (Target)', color='orange', alpha=0.3, kde=True)
-    plt.axvline(threshold, color='red', linestyle='--', linewidth=2, label=f'Threshold ({threshold:.2f})')
-    plt.title('Anomaly Score Distribution (Train vs Val)')
-    plt.xlabel('Anomaly Score (Higher = More Anomalous)')
-    plt.legend()
+    print(f"Result Saved: {output_csv}\n\n")
 
-    # (B) 시계열 흐름상 이상치 위치 (Val Data)
-    plt.subplot(2, 1, 2)
-    plt.plot(val_scores, label='Val Anomaly Score', color='black', alpha=0.7, linewidth=1)
-    plt.scatter(anomalies_idx, val_scores[anomalies_idx], color='red', s=30, label='Detected Anomaly', zorder=5)
-    plt.axhline(threshold, color='red', linestyle='--', alpha=0.5)
-    plt.title('Anomaly Detection Result on Validation Sequence')
-    plt.xlabel('Time Window Index')
-    plt.ylabel('Anomaly Score')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.savefig(output_figure)
 
 
 print("\n\n========== Anomaly Detection ==========")
@@ -109,5 +78,5 @@ for ds in DATASET:
         print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Target: {ds}_o{output_len}\n")
         idx += 1
         
-        run_isolation_forest(h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_anomaly_detection_threshold_{CONTAMINATION}_res.csv", f"{FIG_DIR}/{ds}_o{output_len}_anomaly_detection_threshold_{CONTAMINATION}_res.png")
+        run_isolation_forest(h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_anomaly_detection_threshold_{CONTAMINATION}_res.csv")
 
