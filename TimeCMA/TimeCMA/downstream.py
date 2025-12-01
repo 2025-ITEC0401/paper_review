@@ -9,8 +9,7 @@ from torch.utils.data import DataLoader
 from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from models.TimeCMA import Dual
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
-from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+from sklearn.metrics import rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.manifold import TSNE
@@ -143,42 +142,49 @@ def perform_clustering(features, method="kmeans", n_clusters=5):
     return cluster_labels, clustering_model
 
 
-def evaluate_clustering(features, cluster_labels):
+def evaluate_clustering(features, cluster_labels, true_labels=None):
     """
     Evaluate clustering quality using various metrics
     """
-    # Filter out noise points (label -1) for DBSCAN
     valid_mask = cluster_labels != -1
     features_valid = features[valid_mask]
     labels_valid = cluster_labels[valid_mask]
-    
+
     if len(np.unique(labels_valid)) < 2:
         print("Warning: Only one cluster found. Cannot compute metrics.")
         return {}
-    
+
     metrics = {}
-    
-    try:
-        metrics['silhouette_score'] = silhouette_score(features_valid, labels_valid)
-    except:
-        metrics['silhouette_score'] = None
+
+    if true_labels is not None:
+        true_labels_valid = true_labels[valid_mask]
+
+        if true_labels_valid.ndim > 1:
+            print("Warning: true_labels is multi-dimensional. Converting to 1D labels for RI/NMI calculation.")
+            true_labels_valid = np.mean(true_labels_valid.reshape(true_labels_valid.shape[0], -1), axis=1).astype(int)
         
-    try:
-        metrics['davies_bouldin_score'] = davies_bouldin_score(features_valid, labels_valid)
-    except:
-        metrics['davies_bouldin_score'] = None
-        
-    try:
-        metrics['calinski_harabasz_score'] = calinski_harabasz_score(features_valid, labels_valid)
-    except:
-        metrics['calinski_harabasz_score'] = None
-    
+        elif not np.issubdtype(true_labels_valid.dtype, np.integer):
+            print(f"Warning: true_labels are not integers (dtype: {true_labels_valid.dtype}). Casting to int.")
+            true_labels_valid = true_labels_valid.astype(int)
+
+        try:
+            metrics['rand_score'] = rand_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute rand_score: {e}")
+            metrics['rand_score'] = None
+
+        try:
+            metrics['normalized_mutual_info_score'] = normalized_mutual_info_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute normalized_mutual_info_score: {e}")
+            metrics['normalized_mutual_info_score'] = None
+
     metrics['n_clusters'] = len(np.unique(labels_valid))
     metrics['n_samples'] = len(features_valid)
-    
+
     if valid_mask.sum() < len(cluster_labels):
         metrics['n_noise'] = len(cluster_labels) - valid_mask.sum()
-    
+
     return metrics
 
 
@@ -319,7 +325,10 @@ def main():
     
     # Evaluate clustering
     print("Evaluating clustering quality...")
-    metrics = evaluate_clustering(features, cluster_labels)
+    eval_start = time.time()
+    metrics = evaluate_clustering(features, cluster_labels, true_labels=labels)
+    eval_duration = time.time() - eval_start
+    print(f"Clustering evaluation completed in {eval_duration:.2f} seconds")
     
     # Print results
     print("\n" + "="*50)
@@ -332,9 +341,8 @@ def main():
     if 'n_noise' in metrics:
         print(f"Number of noise points: {metrics['n_noise']}")
     print(f"\nQuality Metrics:")
-    print(f"  Silhouette Score: {metrics.get('silhouette_score', 'N/A'):.4f}" if metrics.get('silhouette_score') else "  Silhouette Score: N/A")
-    print(f"  Davies-Bouldin Score: {metrics.get('davies_bouldin_score', 'N/A'):.4f}" if metrics.get('davies_bouldin_score') else "  Davies-Bouldin Score: N/A")
-    print(f"  Calinski-Harabasz Score: {metrics.get('calinski_harabasz_score', 'N/A'):.4f}" if metrics.get('calinski_harabasz_score') else "  Calinski-Harabasz Score: N/A")
+    print(f"  Rand Index: {metrics.get('rand_score', 'N/A'):.4f}" if metrics.get('rand_score') is not None else "  Rand Index: N/A")
+    print(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A'):.4f}" if metrics.get('normalized_mutual_info_score') is not None else "  Normalized Mutual Information: N/A")
     print("="*50)
     
     # Save results
@@ -348,16 +356,13 @@ def main():
         f.write(f"Dataset: {args.data_path}\n")
         f.write(f"Method: {args.clustering_method}\n")
         f.write(f"Feature type: {args.feature_type}\n")
-        f.write(f"Sequence length: {args.seq_len}\n")
-        f.write(f"Prediction length: {args.pred_len}\n")
         f.write(f"Number of clusters: {metrics.get('n_clusters', 'N/A')}\n")
         f.write(f"Number of samples: {metrics.get('n_samples', 'N/A')}\n")
         if 'n_noise' in metrics:
             f.write(f"Number of noise points: {metrics['n_noise']}\n")
         f.write(f"\nQuality Metrics:\n")
-        f.write(f"  Silhouette Score: {metrics.get('silhouette_score', 'N/A')}\n")
-        f.write(f"  Davies-Bouldin Score: {metrics.get('davies_bouldin_score', 'N/A')}\n")
-        f.write(f"  Calinski-Harabasz Score: {metrics.get('calinski_harabasz_score', 'N/A')}\n")
+        f.write(f"  Rand Index: {metrics.get('rand_score', 'N/A')}\n")
+        f.write(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A')}\n")
     
     print(f"\nResults saved to {result_file}")
     
