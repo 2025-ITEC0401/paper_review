@@ -1,0 +1,1 @@
+DATASET = ['ArticularyWordRecognition', 'NATOPS', 'PenDigits', 'UWaveGestureLibrary']

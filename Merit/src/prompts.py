@@ -1,27 +1,26 @@
 # src/prompts.py
 
-# 논문 Figure 9: Retrieval Agent 프롬프트
-RETRIEVAL_PROMPT_TEMPLATE = """You are an expert in sequence analysis. Below are the details of one current sequence and three similar sequences.
+# --- 수정된 부분: M개의 시퀀스를 선택하도록 프롬프트 변경 ---
+RETRIEVAL_PROMPT_TEMPLATE = """You are an expert in sequence analysis. Below are the details of one current sequence and several candidate sequences.
 
 Your task is to:
-1. Compare the sequences.
-2. Select the most similar sequence.
-3. Provide your reasoning.
+1. Compare the current sequence with all candidate sequences.
+2. Select the {m_relevant} most similar sequences from the candidates.
+3. Provide your reasoning for the selection.
 
 Current Sequence:
 {current_sequence}
 
-Similar Sequences:
+Candidate Sequences (numbered):
 {similar_sequences}
 
-Answer in the following format:
-1. Similar Sequence: <Selected_Similar_Sequence>
-2. Reason: <Reason>
-
-Think step by step and do in-depth reasoning, show details of reasoning.
+Answer in the following format STRICTLY:
+Selected Indices: [<index_1>, <index_2>, ...]
+Reason: <Your detailed reasoning here>
 """
+# -----------------------------------------------------------------
 
-# 논문 Figure 11: Augmentation Agent 프롬프트
+
 AUGMENTATION_PROMPT_TEMPLATE = """You are an expert in sequence augmentation. Below are a current sequence and its similar sequence.
 
 Your task is to:
@@ -44,7 +43,6 @@ Similar Sequence:
 Think step by step and do in-depth reasoning, show details of reasoning.
 """
 
-# 논문 Figure 10: Review Agent 프롬프트
 REVIEW_PROMPT_TEMPLATE = """You are an expert in sequence analysis. Below is a generated sequence after applying an augmentation strategy.
 
 The available strategies are:

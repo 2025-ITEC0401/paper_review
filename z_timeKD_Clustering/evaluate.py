@@ -1,10 +1,8 @@
 import pandas as pd
 from sklearn.metrics import rand_score, normalized_mutual_info_score
-from scipy.stats import mode
 
-# DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
+DATASET = ['BasicMotions', 'Epilepsy', 'HandMovementDirection', 'Libras']
 # OUTPUT_LEN = [24, 36, 48, 96, 192]
-DATASET = ['BasicMotions', 'Epilepsy', 'Libras']
 OUTPUT_LEN = [24]
 RAWDATA_DIR = './data/rawdata'
 RES_DIR = './Result'
@@ -12,12 +10,7 @@ RES_DIR = './Result'
 def evaluate(kmeans_res_csv, gt_label_csv, label_column_name, seq_len, n_vars):
     try:
         predicted_df = pd.read_csv(kmeans_res_csv)
-        predicted_labels_unrolled = predicted_df['cluster'].values
-        
-        num_samples = len(predicted_labels_unrolled) // n_vars
-        predicted_labels_grouped = predicted_labels_unrolled.reshape(num_samples, n_vars)
-        
-        predicted_labels_final = mode(predicted_labels_grouped, axis=1)[0]
+        predicted_labels_final = predicted_df['cluster'].values
         
         ground_truth_df = pd.read_csv(gt_label_csv)
         num_train = int(len(ground_truth_df) * 0.7)
@@ -51,18 +44,19 @@ print("\n\n============= Evaluating =============")
         
 for ds in DATASET:
     for output in OUTPUT_LEN:
-        kmean_csv = f"{RES_DIR}/csv/{ds}_o{output}_res.csv"
-        gt_csv = f"{RAWDATA_DIR}/{ds}_label.csv"
-        seq_len = 96
-        
-        match ds:
-            case 'BasicMotions':
-                var = 6
-            case 'Epilepsy':
-                var = 3
-            case 'HandMovementDirection':
-                var = 10
-            case 'Libras':
-                var = 2
-        
-        evaluate(kmeans_res_csv=kmean_csv, gt_label_csv=gt_csv, label_column_name='label', seq_len=seq_len, n_vars=var)
+        for method in ['kmeans', 'spectral']:
+            kmean_csv = f"{RES_DIR}/csv/{ds}_o{output}_{method}_res.csv"
+            gt_csv = f"{RAWDATA_DIR}/{ds}_label.csv"
+            seq_len = 96
+            
+            match ds:
+                case 'BasicMotions':
+                    var = 6
+                case 'Epilepsy':
+                    var = 3
+                case 'HandMovementDirection':
+                    var = 10
+                case 'Libras':
+                    var = 2
+            
+            evaluate(kmeans_res_csv=kmean_csv, gt_label_csv=gt_csv, label_column_name='label', seq_len=seq_len, n_vars=var)
