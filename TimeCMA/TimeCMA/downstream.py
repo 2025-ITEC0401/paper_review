@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from models.TimeCMA import Dual
 import tensorflow as tf
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.cluster import KMeans
 from sklearn.metrics import rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -35,15 +35,14 @@ def parse_args():
     parser.add_argument("--num_workers", type=int, default=10)
     parser.add_argument("--model_name", type=str, default="gpt2", help="llm")
     parser.add_argument('--seed', type=int, default=2024, help='random seed')
-    
-    # Clustering specific arguments
-    parser.add_argument("--n_clusters", type=int, default=5, help="number of clusters for KMeans")
-    parser.add_argument("--clustering_method", type=str, default="kmeans", 
-                       choices=["kmeans", "dbscan", "agglomerative"],
-                       help="clustering method to use")
-    parser.add_argument("--feature_type", type=str, default="latent", 
-                       choices=["latent", "embedding", "raw"],
-                       help="type of features to use for clustering")
+    parser.add_argument("--n_classes", type=int, default=4, 
+                        help="number of target classes/labels for clustering")
+    parser.add_argument("--clustering_method", type=str, default="kmeans",
+                        choices=["kmeans", "spectral"],
+                        help="clustering method to use")
+    parser.add_argument("--feature_type", type=str, default="latent",
+                        choices=["latent", "embedding", "raw"],
+                        help="type of features to use for clustering")
     parser.add_argument("--checkpoint", type=str, required=True, help="path to model checkpoint")
     parser.add_argument("--output_dir", type=str, default="./Results/clustering/", 
                        help="output directory for clustering results")
@@ -166,29 +165,22 @@ def spectral_clustering_tf(features, n_clusters, gamma=None, random_state=42):
     return cluster_labels, kmeans_model
 
 
-def perform_clustering(features, method="kmeans", n_clusters=5):
+def perform_clustering(features, method="kmeans", n_clusters=2):
     """
     Perform clustering on the extracted features
     """
     if method == "kmeans":
         clustering_model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_labels = clustering_model.fit_predict(features)
-        
-    elif method == "dbscan":
-        clustering_model = DBSCAN(eps=0.5, min_samples=5)
-        cluster_labels = clustering_model.fit_predict(features)
-        
-    elif method == "agglomerative":
-        clustering_model = AgglomerativeClustering(n_clusters=n_clusters)
-        cluster_labels = clustering_model.fit_predict(features)
-    
     elif method == "spectral":
         cluster_labels, clustering_model = spectral_clustering_tf(
             features,
             n_clusters=n_clusters,
             random_state=42
         )
-    
+    else:
+        raise ValueError(f"Unknown clustering method: {method}")
+
     return cluster_labels, clustering_model
 
 
@@ -370,7 +362,7 @@ def main():
     cluster_labels, clustering_model = perform_clustering(
         features, 
         method=args.clustering_method, 
-        n_clusters=args.n_clusters
+        n_clusters=args.n_classes
     )
     
     # Evaluate clustering
