@@ -8,6 +8,7 @@ import random
 from torch.utils.data import DataLoader
 from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from models.TimeCMA import Dual
+import tensorflow as tf
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.metrics import rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
@@ -123,6 +124,48 @@ def extract_features(model, data_loader, device, feature_type="latent"):
     return all_features, all_labels
 
 
+def spectral_clustering_tf(features, n_clusters, gamma=None, random_state=42):
+    """
+    Perform spectral clustering using TensorFlow for eigendecomposition.
+    """
+    if features.ndim != 2:
+        raise ValueError("features should be a 2D array")
+
+    features_tf = tf.convert_to_tensor(features, dtype=tf.float32)
+    num_samples = tf.shape(features_tf)[0]
+
+    # Pairwise squared Euclidean distances.
+    squared_norms = tf.reduce_sum(tf.square(features_tf), axis=1, keepdims=True)
+    pairwise_sq_dists = squared_norms - 2.0 * tf.linalg.matmul(features_tf, features_tf, transpose_b=True) + tf.transpose(squared_norms)
+    pairwise_sq_dists = tf.maximum(pairwise_sq_dists, 0.0)
+
+    if gamma is None:
+        mean_distance = tf.reduce_mean(pairwise_sq_dists)
+        gamma = tf.math.sqrt(tf.maximum(mean_distance, 1e-8))
+    gamma = tf.convert_to_tensor(gamma, dtype=tf.float32)
+
+    affinity = tf.exp(-pairwise_sq_dists / (2.0 * tf.square(gamma) + 1e-8))
+    affinity = tf.linalg.set_diag(affinity, tf.zeros([num_samples], dtype=tf.float32))
+
+    degree = tf.reduce_sum(affinity, axis=1)
+    degree_safe = tf.where(degree > 1e-8, degree, tf.ones_like(degree) * 1e-8)
+    laplacian = tf.linalg.diag(degree_safe) - affinity
+
+    degree_inv_sqrt = tf.linalg.diag(tf.math.rsqrt(degree_safe))
+    normalized_laplacian = tf.linalg.matmul(tf.linalg.matmul(degree_inv_sqrt, laplacian), degree_inv_sqrt)
+
+    eigenvalues, eigenvectors = tf.linalg.eigh(normalized_laplacian)
+    smallest_indices = tf.argsort(eigenvalues)[:n_clusters]
+    spectral_embeddings = tf.gather(eigenvectors, smallest_indices, axis=1)
+    spectral_embeddings = tf.math.l2_normalize(spectral_embeddings, axis=1)
+
+    spectral_embeddings_np = spectral_embeddings.numpy()
+    kmeans_model = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    cluster_labels = kmeans_model.fit_predict(spectral_embeddings_np)
+
+    return cluster_labels, kmeans_model
+
+
 def perform_clustering(features, method="kmeans", n_clusters=5):
     """
     Perform clustering on the extracted features
@@ -138,6 +181,13 @@ def perform_clustering(features, method="kmeans", n_clusters=5):
     elif method == "agglomerative":
         clustering_model = AgglomerativeClustering(n_clusters=n_clusters)
         cluster_labels = clustering_model.fit_predict(features)
+    
+    elif method == "spectral":
+        cluster_labels, clustering_model = spectral_clustering_tf(
+            features,
+            n_clusters=n_clusters,
+            random_state=42
+        )
     
     return cluster_labels, clustering_model
 
