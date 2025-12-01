@@ -1,0 +1,4 @@
+File: ../Result_csv/ArticularyWordRecognition_o24_clustering_spectral_res.csv
+- ri_score: 0.6314334250967566
+- nmi_score: 0.0031125496373433353
+

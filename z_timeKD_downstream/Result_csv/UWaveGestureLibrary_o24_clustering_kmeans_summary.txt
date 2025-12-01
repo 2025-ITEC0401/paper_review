@@ -1,0 +1,4 @@
+File: ../Result_csv/UWaveGestureLibrary_o24_clustering_kmeans_res.csv
+- ri_score: 0.49988850346976094
+- nmi_score: 0.0003614148651429993
+

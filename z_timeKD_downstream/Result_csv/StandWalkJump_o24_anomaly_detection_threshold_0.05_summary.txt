@@ -1,0 +1,5 @@
+File: ../Result_csv/StandWalkJump_o24_anomaly_detection_threshold_0.05_res.csv
+- The number of total validation data: 14908
+- The number of found anormal data: 915
+- Threshold Score: 0.0960
+- Anormal data ratio: 6.14%

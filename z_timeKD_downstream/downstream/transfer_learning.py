@@ -1,1 +1,0 @@
-DATASET = ['ArticularyWordRecognition', 'NATOPS', 'UWaveGestureLibrary']

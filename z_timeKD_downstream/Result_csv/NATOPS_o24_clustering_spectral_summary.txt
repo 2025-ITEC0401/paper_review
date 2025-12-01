@@ -1,0 +1,4 @@
+File: ../Result_csv/NATOPS_o24_clustering_spectral_res.csv
+- ri_score: 0.6461250046867384
+- nmi_score: 0.011213981389357352
+

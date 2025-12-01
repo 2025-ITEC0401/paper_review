@@ -1,0 +1,4 @@
+File: ../Result_csv/StandWalkJump_o24_clustering_spectral_res.csv
+- ri_score: 0.7156433857125636
+- nmi_score: 0.0
+

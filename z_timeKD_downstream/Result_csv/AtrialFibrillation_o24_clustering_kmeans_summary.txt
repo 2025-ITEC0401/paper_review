@@ -1,0 +1,4 @@
+File: ../Result_csv/AtrialFibrillation_o24_clustering_kmeans_res.csv
+- ri_score: 0.5012724735243412
+- nmi_score: 0.0
+
