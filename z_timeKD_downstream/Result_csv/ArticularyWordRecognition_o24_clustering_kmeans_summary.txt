@@ -1,0 +1,4 @@
+File: ../Result_csv/ArticularyWordRecognition_o24_clustering_kmeans_res.csv
+- ri_score: 0.6318321579449903
+- nmi_score: 0.0038484740144248703
+

@@ -1,0 +1,5 @@
+File: ../Result_csv/AtrialFibrillation_o24_anomaly_detection_threshold_0.05_res.csv
+- The number of total validation data: 1874
+- The number of found anormal data: 226
+- Threshold Score: 0.0981
+- Anormal data ratio: 12.06%

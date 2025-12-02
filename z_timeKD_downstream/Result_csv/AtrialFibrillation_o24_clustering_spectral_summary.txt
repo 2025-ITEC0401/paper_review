@@ -1,0 +1,4 @@
+File: ../Result_csv/AtrialFibrillation_o24_clustering_spectral_res.csv
+- ri_score: 0.3633071541289257
+- nmi_score: 0.0
+

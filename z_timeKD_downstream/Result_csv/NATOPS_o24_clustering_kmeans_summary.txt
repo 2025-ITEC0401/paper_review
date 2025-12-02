@@ -1,0 +1,4 @@
+File: ../Result_csv/NATOPS_o24_clustering_kmeans_res.csv
+- ri_score: 0.610228337895092
+- nmi_score: 0.007750122831741696
+

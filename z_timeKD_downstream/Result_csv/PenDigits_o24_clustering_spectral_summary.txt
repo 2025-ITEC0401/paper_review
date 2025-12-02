@@ -1,0 +1,4 @@
+File: ../Result_csv/PenDigits_o24_clustering_spectral_res.csv
+- ri_score: 0.8091104990665398
+- nmi_score: 0.0059278493982948596
+
