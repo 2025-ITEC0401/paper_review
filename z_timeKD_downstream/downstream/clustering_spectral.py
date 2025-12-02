@@ -13,12 +13,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-ROOT_DIR = './data'
+ROOT_DIR = '../data'
 DATASET = ['ArticularyWordRecognition', 'AtrialFibrillation', 'NATOPS', 'PenDigits', 'StandWalkJump', 'UWaveGestureLibrary']
 # OUTPUT_LEN_LIST = [24, 36, 48, 96, 192]
 OUTPUT_LEN_LIST = [24]
 TYPE = ['train', 'val']
-RES_DIR = './Result/csv'
+RES_DIR = '../Result_csv'
 KEY = 'embeddings'
 N_NEIGHBORS = 15
 
@@ -53,27 +53,27 @@ def concatenation(h5_path, n_vars):
     
     return data_concatenated
 
-def run_kmeans(ds, train_file, test_file, output_file):
+def run_spectral(ds, train_file, test_file, output_file):
     try:
         match ds:
-            case 'BasicMotions':
-                var = 6
-            case 'Epilepsy':
-                var = 3
-            case 'HandMovementDirection':
-                var = 10
-            case 'Libras':
+            case 'ArticularyWordRecognition':
+                var = 9
+                n_cluster = 25
+            case 'AtrialFibrillation':
                 var = 2
-                
-        match ds:
-            case 'BasicMotions':
-                n_cluster = 4
-            case 'Epilepsy':
-                n_cluster = 4
-            case 'HandMovementDirection':
-                n_cluster = 4
-            case 'Libras':
-                n_cluster = 15
+                n_cluster = 3
+            case 'NATOPS':
+                var = 24
+                n_cluster = 6
+            case 'PenDigits':
+                var = 2
+                n_cluster = 10
+            case 'StandWalkJump':
+                var = 4
+                n_cluster = 3
+            case 'UWaveGestureLibrary':
+                var = 3
+                n_cluster = 8
         
         train_data_concat = concatenation(train_file, n_vars=var)
         val_data_concat = concatenation(test_file, n_vars=var)
@@ -143,8 +143,8 @@ for ds in DATASET:
             idx += 1
             continue
         
-        print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Target: {ds}_o{output_len}\n")
+        print(f"({idx}/{len(DATASET) * len(OUTPUT_LEN_LIST)}) Target: {ds}_o{output_len}")
         idx += 1
         
-        run_kmeans(ds, h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_spectral_res.csv")
+        run_spectral(ds, h5_train_path, h5_test_path, f"{RES_DIR}/{ds}_o{output_len}_clustering_spectral_res.csv")
 

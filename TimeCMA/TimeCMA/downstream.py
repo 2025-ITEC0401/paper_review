@@ -8,9 +8,9 @@ import random
 from torch.utils.data import DataLoader
 from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
 from models.TimeCMA import Dual
-from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
-from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
-from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+import tensorflow as tf
+from sklearn.cluster import KMeans
+from sklearn.metrics import rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.manifold import TSNE
@@ -35,15 +35,14 @@ def parse_args():
     parser.add_argument("--num_workers", type=int, default=10)
     parser.add_argument("--model_name", type=str, default="gpt2", help="llm")
     parser.add_argument('--seed', type=int, default=2024, help='random seed')
-    
-    # Clustering specific arguments
-    parser.add_argument("--n_clusters", type=int, default=5, help="number of clusters for KMeans")
-    parser.add_argument("--clustering_method", type=str, default="kmeans", 
-                       choices=["kmeans", "dbscan", "agglomerative"],
-                       help="clustering method to use")
-    parser.add_argument("--feature_type", type=str, default="latent", 
-                       choices=["latent", "embedding", "raw"],
-                       help="type of features to use for clustering")
+    parser.add_argument("--n_classes", type=int, default=4, 
+                        help="number of target classes/labels for clustering")
+    parser.add_argument("--clustering_method", type=str, default="kmeans",
+                        choices=["kmeans", "spectral"],
+                        help="clustering method to use")
+    parser.add_argument("--feature_type", type=str, default="latent",
+                        choices=["latent", "embedding", "raw"],
+                        help="type of features to use for clustering")
     parser.add_argument("--checkpoint", type=str, required=True, help="path to model checkpoint")
     parser.add_argument("--output_dir", type=str, default="./Results/clustering/", 
                        help="output directory for clustering results")
@@ -124,101 +123,154 @@ def extract_features(model, data_loader, device, feature_type="latent"):
     return all_features, all_labels
 
 
-def perform_clustering(features, method="kmeans", n_clusters=5):
+def spectral_clustering_tf(features, n_clusters, gamma=None, random_state=42):
+    """
+    Perform spectral clustering using TensorFlow for eigendecomposition.
+    """
+    if features.ndim != 2:
+        raise ValueError("features should be a 2D array")
+
+    features_tf = tf.convert_to_tensor(features, dtype=tf.float32)
+    num_samples = tf.shape(features_tf)[0]
+
+    # Pairwise squared Euclidean distances.
+    squared_norms = tf.reduce_sum(tf.square(features_tf), axis=1, keepdims=True)
+    pairwise_sq_dists = squared_norms - 2.0 * tf.linalg.matmul(features_tf, features_tf, transpose_b=True) + tf.transpose(squared_norms)
+    pairwise_sq_dists = tf.maximum(pairwise_sq_dists, 0.0)
+
+    if gamma is None:
+        mean_distance = tf.reduce_mean(pairwise_sq_dists)
+        gamma = tf.math.sqrt(tf.maximum(mean_distance, 1e-8))
+    gamma = tf.convert_to_tensor(gamma, dtype=tf.float32)
+
+    affinity = tf.exp(-pairwise_sq_dists / (2.0 * tf.square(gamma) + 1e-8))
+    affinity = tf.linalg.set_diag(affinity, tf.zeros([num_samples], dtype=tf.float32))
+
+    degree = tf.reduce_sum(affinity, axis=1)
+    degree_safe = tf.where(degree > 1e-8, degree, tf.ones_like(degree) * 1e-8)
+    laplacian = tf.linalg.diag(degree_safe) - affinity
+
+    degree_inv_sqrt = tf.linalg.diag(tf.math.rsqrt(degree_safe))
+    normalized_laplacian = tf.linalg.matmul(tf.linalg.matmul(degree_inv_sqrt, laplacian), degree_inv_sqrt)
+
+    eigenvalues, eigenvectors = tf.linalg.eigh(normalized_laplacian)
+    smallest_indices = tf.argsort(eigenvalues)[:n_clusters]
+    spectral_embeddings = tf.gather(eigenvectors, smallest_indices, axis=1)
+    spectral_embeddings = tf.math.l2_normalize(spectral_embeddings, axis=1)
+
+    spectral_embeddings_np = spectral_embeddings.numpy()
+    kmeans_model = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    cluster_labels = kmeans_model.fit_predict(spectral_embeddings_np)
+
+    return cluster_labels, kmeans_model
+
+
+def perform_clustering(features, method="kmeans", n_clusters=2):
     """
     Perform clustering on the extracted features
     """
     if method == "kmeans":
         clustering_model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         cluster_labels = clustering_model.fit_predict(features)
-        
-    elif method == "dbscan":
-        clustering_model = DBSCAN(eps=0.5, min_samples=5)
-        cluster_labels = clustering_model.fit_predict(features)
-        
-    elif method == "agglomerative":
-        clustering_model = AgglomerativeClustering(n_clusters=n_clusters)
-        cluster_labels = clustering_model.fit_predict(features)
-    
+    elif method == "spectral":
+        cluster_labels, clustering_model = spectral_clustering_tf(
+            features,
+            n_clusters=n_clusters,
+            random_state=42
+        )
+    else:
+        raise ValueError(f"Unknown clustering method: {method}")
+
     return cluster_labels, clustering_model
 
 
-def evaluate_clustering(features, cluster_labels):
+def evaluate_clustering(features, cluster_labels, true_labels=None):
     """
     Evaluate clustering quality using various metrics
     """
-    # Filter out noise points (label -1) for DBSCAN
     valid_mask = cluster_labels != -1
     features_valid = features[valid_mask]
     labels_valid = cluster_labels[valid_mask]
-    
+
     if len(np.unique(labels_valid)) < 2:
         print("Warning: Only one cluster found. Cannot compute metrics.")
         return {}
-    
+
     metrics = {}
-    
-    try:
-        metrics['silhouette_score'] = silhouette_score(features_valid, labels_valid)
-    except:
-        metrics['silhouette_score'] = None
+
+    if true_labels is not None:
+        true_labels_valid = true_labels[valid_mask]
+
+        if true_labels_valid.ndim > 1:
+            print("Warning: true_labels is multi-dimensional. Converting to 1D labels for RI/NMI calculation.")
+            true_labels_valid = np.mean(true_labels_valid.reshape(true_labels_valid.shape[0], -1), axis=1).astype(int)
         
-    try:
-        metrics['davies_bouldin_score'] = davies_bouldin_score(features_valid, labels_valid)
-    except:
-        metrics['davies_bouldin_score'] = None
-        
-    try:
-        metrics['calinski_harabasz_score'] = calinski_harabasz_score(features_valid, labels_valid)
-    except:
-        metrics['calinski_harabasz_score'] = None
-    
+        elif not np.issubdtype(true_labels_valid.dtype, np.integer):
+            print(f"Warning: true_labels are not integers (dtype: {true_labels_valid.dtype}). Casting to int.")
+            true_labels_valid = true_labels_valid.astype(int)
+
+        try:
+            metrics['rand_score'] = rand_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute rand_score: {e}")
+            metrics['rand_score'] = None
+
+        try:
+            metrics['normalized_mutual_info_score'] = normalized_mutual_info_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute normalized_mutual_info_score: {e}")
+            metrics['normalized_mutual_info_score'] = None
+
     metrics['n_clusters'] = len(np.unique(labels_valid))
     metrics['n_samples'] = len(features_valid)
-    
+
     if valid_mask.sum() < len(cluster_labels):
         metrics['n_noise'] = len(cluster_labels) - valid_mask.sum()
-    
+
     return metrics
 
 
-def visualize_clusters(features, cluster_labels, output_path, method="tsne"):
+def visualize_clusters(features, cluster_labels, output_path, method="tsne", metrics=None):
     """
     Visualize clustering results using dimensionality reduction
     """
     plt.figure(figsize=(12, 8))
-    
-    # Dimensionality reduction
+
     if method == "tsne":
         if features.shape[0] > 5000:
-            # Subsample for faster computation
             indices = np.random.choice(features.shape[0], 5000, replace=False)
             features_reduced = features[indices]
             labels_reduced = cluster_labels[indices]
         else:
             features_reduced = features
             labels_reduced = cluster_labels
-            
         reducer = TSNE(n_components=2, random_state=42, perplexity=30)
         features_2d = reducer.fit_transform(features_reduced)
-        
     elif method == "pca":
         reducer = PCA(n_components=2, random_state=42)
         features_2d = reducer.fit_transform(features)
         labels_reduced = cluster_labels
-    
-    # Plot
-    scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1], 
-                         c=labels_reduced, cmap='viridis', 
-                         alpha=0.6, s=50)
+
+    scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1],
+                          c=labels_reduced, cmap='viridis',
+                          alpha=0.6, s=50)
     plt.colorbar(scatter, label='Cluster')
-    plt.title(f'Clustering Visualization ({method.upper()})')
+    
+    title_str = f'Clustering Visualization ({method.upper()})'
+    if metrics:
+        ri_score = metrics.get('rand_score')
+        nmi_score = metrics.get('normalized_mutual_info_score')
+        ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+        nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+        title_str += f'\n({ri_str}, {nmi_str})'
+    plt.title(title_str)
+
     plt.xlabel('Component 1')
     plt.ylabel('Component 2')
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    
+
     print(f"Visualization saved to {output_path}")
 
 
@@ -314,12 +366,15 @@ def main():
     cluster_labels, clustering_model = perform_clustering(
         features, 
         method=args.clustering_method, 
-        n_clusters=args.n_clusters
+        n_clusters=args.n_classes
     )
     
     # Evaluate clustering
     print("Evaluating clustering quality...")
-    metrics = evaluate_clustering(features, cluster_labels)
+    eval_start = time.time()
+    metrics = evaluate_clustering(features, cluster_labels, true_labels=labels)
+    eval_duration = time.time() - eval_start
+    print(f"Clustering evaluation completed in {eval_duration:.2f} seconds")
     
     # Print results
     print("\n" + "="*50)
@@ -332,9 +387,8 @@ def main():
     if 'n_noise' in metrics:
         print(f"Number of noise points: {metrics['n_noise']}")
     print(f"\nQuality Metrics:")
-    print(f"  Silhouette Score: {metrics.get('silhouette_score', 'N/A'):.4f}" if metrics.get('silhouette_score') else "  Silhouette Score: N/A")
-    print(f"  Davies-Bouldin Score: {metrics.get('davies_bouldin_score', 'N/A'):.4f}" if metrics.get('davies_bouldin_score') else "  Davies-Bouldin Score: N/A")
-    print(f"  Calinski-Harabasz Score: {metrics.get('calinski_harabasz_score', 'N/A'):.4f}" if metrics.get('calinski_harabasz_score') else "  Calinski-Harabasz Score: N/A")
+    print(f"  Rand Index: {metrics.get('rand_score', 'N/A'):.4f}" if metrics.get('rand_score') is not None else "  Rand Index: N/A")
+    print(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A'):.4f}" if metrics.get('normalized_mutual_info_score') is not None else "  Normalized Mutual Information: N/A")
     print("="*50)
     
     # Save results
@@ -348,16 +402,13 @@ def main():
         f.write(f"Dataset: {args.data_path}\n")
         f.write(f"Method: {args.clustering_method}\n")
         f.write(f"Feature type: {args.feature_type}\n")
-        f.write(f"Sequence length: {args.seq_len}\n")
-        f.write(f"Prediction length: {args.pred_len}\n")
         f.write(f"Number of clusters: {metrics.get('n_clusters', 'N/A')}\n")
         f.write(f"Number of samples: {metrics.get('n_samples', 'N/A')}\n")
         if 'n_noise' in metrics:
             f.write(f"Number of noise points: {metrics['n_noise']}\n")
         f.write(f"\nQuality Metrics:\n")
-        f.write(f"  Silhouette Score: {metrics.get('silhouette_score', 'N/A')}\n")
-        f.write(f"  Davies-Bouldin Score: {metrics.get('davies_bouldin_score', 'N/A')}\n")
-        f.write(f"  Calinski-Harabasz Score: {metrics.get('calinski_harabasz_score', 'N/A')}\n")
+        f.write(f"  Rand Index: {metrics.get('rand_score', 'N/A')}\n")
+        f.write(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A')}\n")
     
     print(f"\nResults saved to {result_file}")
     
@@ -373,31 +424,35 @@ def main():
     if args.visualize:
         print("\nGenerating visualizations...")
         
-        # t-SNE visualization
         vis_path_tsne = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_tsne.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_tsne.png"
         )
-        visualize_clusters(features, cluster_labels, vis_path_tsne, method="tsne")
-        
-        # PCA visualization
+        visualize_clusters(features, cluster_labels, vis_path_tsne, method="tsne", metrics=metrics)
+
         vis_path_pca = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_pca.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_pca.png"
         )
-        visualize_clusters(features, cluster_labels, vis_path_pca, method="pca")
-        
+        visualize_clusters(features, cluster_labels, vis_path_pca, method="pca", metrics=metrics)
+
         # Cluster size distribution
         plt.figure(figsize=(10, 6))
         unique, counts = np.unique(cluster_labels, return_counts=True)
         plt.bar(unique, counts)
         plt.xlabel('Cluster ID')
         plt.ylabel('Number of Samples')
-        plt.title('Cluster Size Distribution')
+        
+        title_str = 'Cluster Size Distribution'
+        if metrics:
+            ri_score = metrics.get('rand_score')
+            nmi_score = metrics.get('normalized_mutual_info_score')
+            ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+            nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+            title_str += f'\n({ri_str}, {nmi_str})'
+        plt.title(title_str)
+        
         plt.tight_layout()
         dist_path = os.path.join(
-            args.output_dir,
-            f"{args.data_path}_{args.clustering_method}_{args.feature_type}_distribution.png"
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_distribution.png"
         )
         plt.savefig(dist_path, dpi=300, bbox_inches='tight')
         plt.close()

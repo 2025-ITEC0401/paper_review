@@ -1,0 +1,4 @@
+File: ../Result_csv/PenDigits_o24_clustering_kmeans_res.csv
+- ri_score: 0.8169652632420075
+- nmi_score: 0.0045762967292498555
+

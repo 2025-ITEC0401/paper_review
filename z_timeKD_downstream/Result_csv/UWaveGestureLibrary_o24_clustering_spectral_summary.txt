@@ -1,0 +1,4 @@
+File: ../Result_csv/UWaveGestureLibrary_o24_clustering_spectral_res.csv
+- ri_score: 0.500014179321068
+- nmi_score: 0.0003436694723981773
+
