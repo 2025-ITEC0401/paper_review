@@ -59,12 +59,18 @@ def evaluate_all_tasks(dataset_name, representations, labels, tasks):
             results[f'classification_{method}'] = alt_results
 
     if 'clustering' in tasks:
-        print(f"  [Clustering] Evaluating...")
-        cluster_head = ClusteringHead()
-        cluster_results, cluster_labels, centers = cluster_head.evaluate(representations, labels)
-        results['clustering'] = cluster_results
-        results['_cluster_labels'] = cluster_labels
-        results['_cluster_centers'] = centers
+        print(f"  [Clustering - KMeans] Evaluating...")
+        cluster_head_kmeans = ClusteringHead(method='kmeans')
+        kmeans_results, kmeans_labels, kmeans_centers = cluster_head_kmeans.evaluate(representations, labels)
+        results['clustering_kmeans'] = kmeans_results
+        results['_cluster_labels_kmeans'] = kmeans_labels
+        results['_cluster_centers_kmeans'] = kmeans_centers
+
+        print(f"  [Clustering - Spectral] Evaluating...")
+        cluster_head_spectral = ClusteringHead(method='spectral')
+        spectral_results, spectral_labels, _ = cluster_head_spectral.evaluate(representations, labels)
+        results['clustering_spectral'] = spectral_results
+        results['_cluster_labels_spectral'] = spectral_labels
 
     if 'anomaly_detection' in tasks:
         print(f"  [Anomaly Detection] Evaluating...")
