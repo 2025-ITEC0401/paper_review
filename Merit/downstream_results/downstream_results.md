@@ -1,6 +1,6 @@
 # Merit 다운스트림 태스크 평가 결과
 
-생성 시간: 2025-11-30 21:43:39
+생성 시간: 2025-12-03 20:12:16
 
 
 ## 1. Classification 결과
@@ -11,7 +11,7 @@
 | StandWalkJump | 0.5000 | 0.5222 | 0.5222 | 0.4400±0.1356 | 3 |
 | ArticularyWordRecognition | 0.2174 | 0.1604 | 0.1576 | 0.1913±0.0343 | 25 |
 | NATOPS | 0.2639 | 0.2437 | 0.2437 | 0.2917±0.0291 | 6 |
-| PenDigits | 0.5121 | 0.4699 | 0.4743 | 0.4972±0.0164 | 10 |
+| PenDigits | 0.5121 | 0.4699 | 0.4743 | 0.4969±0.0164 | 10 |
 | UWaveGestureLibrary | 0.2727 | 0.2282 | 0.2282 | 0.2773±0.0423 | 8 |
 
 ### Classification 방법론 비교 (Accuracy)
@@ -27,10 +27,14 @@
 
 ## 2. Clustering 결과
 
-| Dataset | NMI | RI | ARI | Silhouette | Clusters |
-|---------|-----|-----|-----|------------|----------|
-| StandWalkJump | 0.2589 | 0.5214 | 0.0602 | 0.6073 | 3 |
-| PenDigits | 0.1415 | 0.8195 | 0.0589 | 0.3885 | 10 |
+### KMeans vs Spectral Clustering 비교
+
+| Dataset | Method | NMI | RI | ARI | Silhouette | Clusters |
+|---------|--------|-----|-----|-----|------------|----------|
+| StandWalkJump | KMEANS | 0.2589 | 0.5214 | 0.0602 | 0.6073 | 3 |
+| StandWalkJump | SPECTRAL | 0.2590 | 0.6496 | 0.1796 | 0.2359 | 3 |
+| PenDigits | KMEANS | 0.1415 | 0.8195 | 0.0589 | 0.3885 | 10 |
+| PenDigits | SPECTRAL | 0.1729 | 0.8210 | 0.0802 | 0.3765 | 10 |
 
 ## 3. Anomaly Detection 결과
 
@@ -39,7 +43,7 @@
 | AtrialFibrillation | Isolation Forest | 0.8000 | 0.7500 | 0.6000 | 0.6667 | 0.8325 |
 | AtrialFibrillation | One-Class SVM | 0.7667 | 0.6667 | 0.6000 | 0.6316 | 0.7250 |
 | StandWalkJump | Isolation Forest | 0.7407 | 0.6667 | 0.4444 | 0.5333 | 0.7191 |
-| StandWalkJump | One-Class SVM | 0.8148 | 0.7500 | 0.6667 | 0.7059 | 0.7840 |
+| StandWalkJump | One-Class SVM | 0.7407 | 0.6000 | 0.6667 | 0.6316 | 0.7840 |
 | PEMS-SF | Isolation Forest | 0.8045 | 0.2041 | 0.1754 | 0.1887 | 0.4552 |
 | PEMS-SF | One-Class SVM | 0.8000 | 0.1702 | 0.1404 | 0.1538 | 0.5895 |
 
@@ -68,8 +72,6 @@
 
 ![StandWalkJump t-SNE](./figures/StandWalkJump_tsne.png)
 
-![StandWalkJump Clustering](./figures/StandWalkJump_clustering.png)
-
 
 ### ArticularyWordRecognition
 
@@ -84,8 +86,6 @@
 ### PenDigits
 
 ![PenDigits t-SNE](./figures/PenDigits_tsne.png)
-
-![PenDigits Clustering](./figures/PenDigits_clustering.png)
 
 
 ### UWaveGestureLibrary
@@ -102,7 +102,9 @@
 
 - **Classification 평균 Accuracy**: 0.3221
 
-- **Clustering 평균 NMI**: 0.2002
+- **Clustering (KMeans) 평균 NMI**: 0.2002
+
+- **Clustering (Spectral) 평균 NMI**: 0.2159
 
 
 ---
