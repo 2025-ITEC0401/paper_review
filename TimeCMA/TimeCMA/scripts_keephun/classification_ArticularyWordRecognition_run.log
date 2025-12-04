@@ -1,0 +1,27 @@
+nohup: ignoring input
+==================================================
+Start Classification: AtrialFibrillation_m (SVM)
+Date: 2025. 12. 03. (수) 23:58:14 KST
+==================================================
+Using device: cuda:1
+Loading model from /hdd/intern/keephun/TimeCMA/logs/2025-12-02-17:18:58-/ArticularyWordRecognition_m/96_64_1_2_0.0001_0.7_2024/best_model.pth...
+Loading Datasets from /hdd/intern/keephun/TimeCMA/sfs-common/dataset/ ...
+Extracting features (latent)...
+Initializing Classifier (svm)...
+Calculating CV Accuracy...
+Training finished in 1131.33 seconds.
+
+==================================================
+Classification Results: ArticularyWordRecognition_m
+==================================================
+Accuracy      : 0.9838
+F1 (Macro)    : 0.4491
+F1 (Weighted) : 0.9885
+CV Accuracy   : 0.9999
+Classes       : 25 [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+ 25]
+==================================================
+Results saved to ./Results/classification_comparison/ArticularyWordRecognition_m/ArticularyWordRecognition_m/svm
+==================================================
+Process Finished.
+==================================================
