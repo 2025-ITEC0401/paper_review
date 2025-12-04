@@ -1,0 +1,31 @@
+Using device: cuda:0
+Loading TimeCMA model...
+Loading Datasets from /hdd/intern/keephun/TimeCMA/sfs-common/dataset/...
+Extracting features (latent)...
+
+>>> Training IsolationForest...
+    Finished in 27.10 seconds.
+    [Result] IsolationForest
+    Accuracy : 0.1455
+    Precision: 1.0000
+    Recall   : 0.1455
+    F1 Score : 0.2541
+    ROC-AUC  : 0.0000
+
+>>> Training OneClassSVM...
+    Finished in 782.28 seconds.
+    [Result] OneClassSVM
+    Accuracy : 0.1686
+    Precision: 1.0000
+    Recall   : 0.1686
+    F1 Score : 0.2885
+    ROC-AUC  : 0.0000
+
+==================================================
+Final Results Summary
+==================================================
+             Model  Accuracy  Precision    Recall        F1  ROC-AUC
+0  IsolationForest  0.145545        1.0  0.145545  0.254106      0.0
+1      OneClassSVM  0.168580        1.0  0.168580  0.288521      0.0
+
+Results saved to ./Results/anomaly_models/StandWalkJump_m
