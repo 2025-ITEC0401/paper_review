@@ -1,4 +1,3 @@
-cat > run_imp_pems.sh << 'EOF'
 #!/bin/bash
 
 # 설정
@@ -6,12 +5,11 @@ DATASET="PEMS-SF"
 ROOT_PATH="/hdd/dataset/newDataset"
 SEQ_LEN=963
 ENC_IN=963
-BATCH_SIZE=4  # 메모리 부족 방지를 위해 작게 설정
-MASK_RATIO=0.25 # 결측치 비율 (0.25 = 25% 가림)
+BATCH_SIZE=4  # 메모리 부족 방지
+MASK_RATIO=0.25 # 25% 가림
 
 echo "========================================================"
-echo " Running Imputation on $DATASET (Mask: $MASK_RATIO)"
-echo " Metrics: MSE, RMSE, MAE, Mask Ratio"
+echo " Starting Imputation for $DATASET..."
 echo "========================================================"
 
 python run_imputation.py \
@@ -28,4 +26,3 @@ python run_imputation.py \
   --e_layers 3
 
 echo "Done."
-EOF
