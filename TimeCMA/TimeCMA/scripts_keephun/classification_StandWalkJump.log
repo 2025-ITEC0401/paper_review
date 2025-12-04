@@ -1,0 +1,26 @@
+nohup: ignoring input
+==================================================
+Start Classification: AtrialFibrillation_m (SVM)
+Date: 2025. 12. 04. (목) 00:01:31 KST
+==================================================
+Using device: cuda:1
+Loading model from /hdd/intern/keephun/TimeCMA/logs/2025-12-03-10:57:17-/StandWalkJump_m/96_64_1_2_0.0001_0.7_2024/best_model.pth...
+Loading Datasets from /hdd/intern/keephun/TimeCMA/sfs-common/dataset/ ...
+Extracting features (latent)...
+Initializing Classifier (svm)...
+Calculating CV Accuracy...
+Training finished in 1219.27 seconds.
+
+==================================================
+Classification Results: StandWalkJump_m
+==================================================
+Accuracy      : 0.2409
+F1 (Macro)    : 0.1824
+F1 (Weighted) : 0.3522
+CV Accuracy   : 0.8904
+Classes       : 3 [1 2 3]
+==================================================
+Results saved to ./Results/classification_comparison/StandWalkJump_m/StandWalkJump_m/svm
+==================================================
+Process Finished.
+==================================================
