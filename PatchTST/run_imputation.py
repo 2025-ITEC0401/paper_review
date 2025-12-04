@@ -5,23 +5,56 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 import os
 import math
+import matplotlib.pyplot as plt
 from sktime.datasets._data_io import load_from_tsfile
 from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import warnings
+
+# 모델 파일 로드
 from models.PatchTST import Model as PatchTST
+
+# -----------------------------------------------------------------------------
+# 0. 시각화 함수
+# -----------------------------------------------------------------------------
+def visualize_imputation(true, pred, mask, dataset_name, sample_idx=0, channel_idx=0):
+    plt.figure(figsize=(12, 6))
+    
+    # 텐서를 넘파이로 변환
+    t_true = true[sample_idx, :, channel_idx].cpu().numpy()
+    t_pred = pred[sample_idx, :, channel_idx].cpu().numpy()
+    t_mask = mask[sample_idx, :, channel_idx].cpu().numpy()
+    
+    x_axis = np.arange(len(t_true))
+    
+    # 1. 원본 그리기
+    plt.plot(x_axis, t_true, label='Ground Truth', color='blue', alpha=0.3, linewidth=2)
+    
+    # 2. 복원된 값 그리기
+    masked_indices = np.where(t_mask == 1)[0]
+    plt.plot(x_axis, t_pred, label='Imputed Prediction', color='orange', linestyle='--')
+    plt.scatter(masked_indices, t_pred[masked_indices], color='red', s=10, label='Masked Points', zorder=5)
+
+    plt.title(f"Imputation Result: {dataset_name} (Sample {sample_idx}, Channel {channel_idx})")
+    plt.xlabel("Time Steps")
+    plt.ylabel("Value (Standardized)")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    save_name = f"Imputation_{dataset_name}.png"
+    plt.savefig(save_name)
+    plt.close()
+    print(f"   -> [시각화 저장 완료]: {save_name}")
 
 # -----------------------------------------------------------------------------
 # 1. 지표 계산 함수
 # -----------------------------------------------------------------------------
 def calc_metrics(pred, true, mask):
-    """
-    Mask 처리된 부분(결측치였던 부분)에 대해서만 오차를 계산합니다.
-    """
-    # 마스킹된 위치의 데이터만 추출
+    # 마스킹된 부분만 평가
     pred_masked = pred[mask]
     true_masked = true[mask]
     
-    if len(true_masked) == 0:
-        return 0.0, 0.0, 0.0
+    if len(true_masked) == 0: return 0.0, 0.0, 0.0
 
     mse = torch.mean((pred_masked - true_masked) ** 2).item()
     rmse = math.sqrt(mse)
@@ -30,38 +63,25 @@ def calc_metrics(pred, true, mask):
     return mse, rmse, mae
 
 # -----------------------------------------------------------------------------
-# 2. 마스킹 함수 (데이터에 구멍 뚫기)
+# 2. 마스킹 함수
 # -----------------------------------------------------------------------------
 def random_masking(x, mask_ratio, device):
-    """
-    Input: (Batch, Time, Channel)
-    Operation: mask_ratio 확률로 0으로 만듦
-    Output: Masked Input, Mask Matrix (1=masked, 0=kept)
-    """
-    # 0~1 사이 랜덤 값 생성
     rand = torch.rand_like(x)
-    # mask_ratio보다 작은 부분을 True(Masked)로 설정
     mask = rand < mask_ratio
-    
-    # 마스킹된 입력 데이터 생성 (가려진 부분은 0으로 채움)
     x_masked = x.clone()
     x_masked[mask] = 0
-    
     return x_masked.to(device), mask.to(device)
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 로딩 및 전처리
+# 3. 데이터 로딩
 # -----------------------------------------------------------------------------
 def load_data(dataset_name, root_path):
     train_file = os.path.join(root_path, dataset_name, f"{dataset_name}_TRAIN.ts")
     test_file = os.path.join(root_path, dataset_name, f"{dataset_name}_TEST.ts")
     
-    # 데이터 로드 (sktime)
-    import warnings
     warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
-    import pandas as pd # pandas import 추가
     
-    print(f"--- Loading {dataset_name} ... ---")
+    print(f"--- Loading {dataset_name}... ---")
     X_train_df, _ = load_from_tsfile(train_file)
     X_test_df, _ = load_from_tsfile(test_file)
 
@@ -78,12 +98,10 @@ def load_data(dataset_name, root_path):
     X_train = to_numpy_3d(X_train_df)
     X_test = to_numpy_3d(X_test_df)
     
-    # 데이터 정규화 (StandardScaler) - Imputation 성능에 중요
-    # (Samples, Time, Channel) -> (Samples * Time, Channel) 
+    scaler = StandardScaler()
     n_train, t_len, n_ch = X_train.shape
     n_test, _, _ = X_test.shape
     
-    scaler = StandardScaler()
     X_train_flat = X_train.reshape(-1, n_ch)
     X_train_scaled = scaler.fit_transform(X_train_flat).reshape(n_train, t_len, n_ch)
     
@@ -93,117 +111,97 @@ def load_data(dataset_name, root_path):
     return X_train_scaled, X_test_scaled
 
 # -----------------------------------------------------------------------------
-# 4. 학습 및 평가 루프
+# 4. 실행 루프
 # -----------------------------------------------------------------------------
-def run_imputation_experiment(args):
+def run_experiment(args):
     device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
-    
-    # 1. 데이터 로드
+    print(f"--- Device: {device} ---")
+
     X_train, X_test = load_data(args.dataset_name, args.root_path)
     
-    # DataLoader 생성
-    train_loader = DataLoader(TensorDataset(torch.from_numpy(X_train).float()), 
-                              batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(TensorDataset(torch.from_numpy(X_test).float()), 
-                             batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(TensorDataset(torch.from_numpy(X_train).float()), batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(TensorDataset(torch.from_numpy(X_test).float()), batch_size=args.batch_size, shuffle=False)
 
-    # 2. 모델 초기화
-    # PatchTST Imputation 모드 설정
-    args.task_name = 'imputation'
+    # [Task 에러 해결] 모델을 '장기 예측' 모드로 속여서 Imputation 수행
+    args.task_name = 'long_term_forecast' 
+    args.pred_len = args.seq_len # 입력 길이만큼 전체를 예측(=복원)
+    args.label_len = 0 
     args.num_class = 0
-    args.c_out = args.enc_in # 출력 채널 = 입력 채널
+    args.c_out = args.enc_in 
     
     model = PatchTST(args).float().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.MSELoss()
 
-    print(f"\n[Start Training] Dataset: {args.dataset_name}, Mask Ratio: {args.mask_ratio}")
+    print(f"\n[Training Start] Mask Ratio: {args.mask_ratio}")
 
-    # -----------------------------------------------------
-    # 학습 (Training) - 마스킹된 데이터를 복원하도록 학습
-    # -----------------------------------------------------
     for epoch in range(args.epochs):
         model.train()
-        train_loss = []
-        
+        train_losses = []
         for (batch_x,) in train_loader:
             optimizer.zero_grad()
             batch_x = batch_x.to(device)
             
-            # 랜덤 마스킹 적용
+            # 랜덤 마스킹
             x_masked, mask = random_masking(batch_x, args.mask_ratio, device)
             
-            # 모델 예측 (입력: 마스킹된 데이터)
-            outputs = model(x_masked)
+            # None 인자 전달 (Forecasting 모드 호환성)
+            outputs = model(x_masked, None, None, None)
             
-            # Loss 계산: 마스킹된 부분과 원본의 차이만 계산 (혹은 전체 재구성 오차)
-            # 일반적으로 Imputation 학습 시에는 전체 혹은 마스크 부분 Loss를 씀
+            # Loss 계산
             loss = criterion(outputs, batch_x) 
             
             loss.backward()
             optimizer.step()
-            train_loss.append(loss.item())
-            
-        print(f"Epoch: {epoch+1}/{args.epochs} | Train Loss: {np.mean(train_loss):.4f}")
+            train_losses.append(loss.item())
+        
+        print(f"Epoch {epoch+1}/{args.epochs} | Loss: {np.mean(train_losses):.5f}")
 
-    # -----------------------------------------------------
-    # 평가 (Evaluation) - Test 셋으로 지표 계산
-    # -----------------------------------------------------
-    print("\n[Start Evaluation]")
+    print("\n[Evaluation Start]")
     model.eval()
     
-    total_mse = []
-    total_rmse = []
-    total_mae = []
+    mse_list, rmse_list, mae_list = [], [], []
     
     with torch.no_grad():
-        for (batch_x,) in test_loader:
+        for i, (batch_x,) in enumerate(test_loader):
             batch_x = batch_x.to(device)
             
-            # 테스트 데이터에 마스킹 적용 (이 부분을 복원해야 함)
             x_masked, mask = random_masking(batch_x, args.mask_ratio, device)
+            outputs = model(x_masked, None, None, None)
             
-            # 예측
-            outputs = model(x_masked)
-            
-            # 지표 계산 (마스킹된 부분만 비교)
             mse, rmse, mae = calc_metrics(outputs, batch_x, mask)
-            
-            total_mse.append(mse)
-            total_rmse.append(rmse)
-            total_mae.append(mae)
+            mse_list.append(mse)
+            rmse_list.append(rmse)
+            mae_list.append(mae)
 
-    # 최종 결과 출력
-    avg_mse = np.mean(total_mse)
-    avg_rmse = np.mean(total_rmse)
-    avg_mae = np.mean(total_mae)
-    
-    print("\n" + "="*40)
-    print(f" Dataset: {args.dataset_name}")
-    print(f" Mask Ratio used: {args.mask_ratio}")
-    print("-" * 40)
-    print(f" 1. MSE        : {avg_mse:.6f}")
-    print(f" 2. RMSE       : {avg_rmse:.6f}")
-    print(f" 3. MAE        : {avg_mae:.6f}")
+            if i == 0:
+                visualize_imputation(batch_x, outputs, mask, args.dataset_name)
+
+    print("\n" + "="*45)
+    print(f" [Final Result] Dataset: {args.dataset_name}")
+    print("-" * 45)
+    print(f" 1. MSE        : {np.mean(mse_list):.6f}")
+    print(f" 2. RMSE       : {np.mean(rmse_list):.6f}")
+    print(f" 3. MAE        : {np.mean(mae_list):.6f}")
     print(f" 4. Mask Ratio : {args.mask_ratio:.2f}")
-    print("="*40 + "\n")
+    print("="*45 + "\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_name', type=str, required=True)
     parser.add_argument('--root_path', type=str, default='/hdd/dataset/newDataset')
-    parser.add_argument('--mask_ratio', type=float, default=0.25, help='결측치 비율 (0.0 ~ 1.0)')
+    parser.add_argument('--mask_ratio', type=float, default=0.25)
     parser.add_argument('--gpu', type=int, default=0)
     
-    # 모델 파라미터
+    # 모델 하이퍼파라미터
     parser.add_argument('--seq_len', type=int, default=96)
     parser.add_argument('--enc_in', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.001)
     
-    # PatchTST 기본 인자 (Dummy)
-    parser.add_argument('--pred_len', type=int, default=24) # dummy
+    # PatchTST 필요 인자들
+    parser.add_argument('--pred_len', type=int, default=24)
     parser.add_argument('--patch_len', type=int, default=16)
     parser.add_argument('--stride', type=int, default=8)
     parser.add_argument('--d_model', type=int, default=128)
@@ -225,5 +223,4 @@ if __name__ == '__main__':
     parser.add_argument('--activation', type=str, default='gelu')
     
     args = parser.parse_args()
-    
-    run_imputation_experiment(args)
+    run_experiment(args)
