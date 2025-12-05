@@ -10,6 +10,7 @@ from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, 
 from model.TimeKD import Dual
 from utils.kd_loss import KDLoss
 from utils.metrics import MSE, MAE, metric
+from sklearn.metrics import r2_score
 import faulthandler
 faulthandler.enable()
 torch.cuda.empty_cache()

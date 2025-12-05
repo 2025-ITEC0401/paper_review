@@ -23,7 +23,7 @@ for data_path in "${data_paths[@]}"; do
           for dropout_n in "${dropout_ns[@]}"; do
             for e_layer in "${e_layers[@]}"; do
               for batch_size in "${batch_sizes[@]}"; do
-                log_path="../Results_csv/"
+                log_path="../Result_csv/"
                 mkdir -p $log_path
                 log_file="${log_path}${data_path}_o${pred_len}_forecasting_lr${learning_rate}_bs${batch_size}_e${epochs}_summary.txt"
                 /hdd/conda_envs/envs/timeKD/bin/python3 forecasting.py \
