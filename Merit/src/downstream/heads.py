@@ -8,7 +8,7 @@ from sklearn.svm import SVC, OneClassSVM
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score,
     normalized_mutual_info_score, adjusted_rand_score, rand_score, silhouette_score,
@@ -86,8 +86,9 @@ class ClassificationHead:
 class ClusteringHead:
     """Clustering 다운스트림 태스크"""
 
-    def __init__(self, n_clusters=None):
+    def __init__(self, n_clusters=None, method='kmeans'):
         self.n_clusters = n_clusters
+        self.method = method
         self.scaler = StandardScaler()
 
     def evaluate(self, representations, labels):
@@ -98,19 +99,36 @@ class ClusteringHead:
 
         X_scaled = self.scaler.fit_transform(representations)
 
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        cluster_labels = kmeans.fit_predict(X_scaled)
+        if self.method == 'kmeans':
+            model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            cluster_labels = model.fit_predict(X_scaled)
+            centers = model.cluster_centers_
+            extra_info = {'inertia': model.inertia_}
+        elif self.method == 'spectral':
+            model = SpectralClustering(
+                n_clusters=n_clusters,
+                affinity='nearest_neighbors',
+                n_neighbors=10,
+                random_state=42,
+                assign_labels='kmeans'
+            )
+            cluster_labels = model.fit_predict(X_scaled)
+            centers = None  # Spectral Clustering은 cluster centers가 없음
+            extra_info = {'affinity': 'nearest_neighbors', 'n_neighbors': 10}
+        else:
+            raise ValueError(f"Unknown clustering method: {self.method}")
 
         results = {
+            'method': self.method,
             'nmi': normalized_mutual_info_score(labels_encoded, cluster_labels),
             'ri': rand_score(labels_encoded, cluster_labels),
             'ari': adjusted_rand_score(labels_encoded, cluster_labels),
             'silhouette': silhouette_score(X_scaled, cluster_labels),
             'n_clusters': n_clusters,
-            'inertia': kmeans.inertia_
         }
+        results.update(extra_info)
 
-        return results, cluster_labels, kmeans.cluster_centers_
+        return results, cluster_labels, centers
 
 
 class AnomalyDetectionHead:

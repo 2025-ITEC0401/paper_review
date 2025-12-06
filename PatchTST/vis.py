@@ -5,7 +5,7 @@ import os
 import argparse
 from sktime.datasets._data_io import load_from_tsfile
 from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering # SpectralClustering 추가
 from sklearn.metrics import rand_score, normalized_mutual_info_score
 
 # ---------------------------------------------------------
@@ -48,7 +48,7 @@ def plot_loss_from_log(log_file):
                 plt.close()
 
 # ---------------------------------------------------------
-# 2. 데이터셋 샘플 시각화 (Raw Data)
+# 2. 데이터셋 샘플 시각화
 # ---------------------------------------------------------
 def plot_dataset_sample(dataset_name, root_path):
     file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TRAIN.ts")
@@ -71,7 +71,7 @@ def plot_dataset_sample(dataset_name, root_path):
     print(f" -> sample_{dataset_name}.png 저장 완료")
 
 # ---------------------------------------------------------
-# 3. t-SNE 및 RI, NMI 계산 (수정됨)
+# 3. t-SNE 및 Clustering (K-Means + Spectral)
 # ---------------------------------------------------------
 def plot_tsne(dataset_name, root_path):
     file_path = os.path.join(root_path, dataset_name, f"{dataset_name}_TEST.ts")
@@ -82,13 +82,13 @@ def plot_tsne(dataset_name, root_path):
             print("[오류] 데이터 파일을 찾을 수 없습니다.")
             return
 
-    print(f"--- {dataset_name} 데이터 로딩 및 분석 중... ---")
+    print(f"--- {dataset_name} 분석 시작 ---")
     X_df, y = load_from_tsfile(file_path)
     
     n_samples = X_df.shape[0]
     X_flattened = []
     
-    # 데이터가 너무 많으면 500개만 샘플링 (속도 최적화)
+    # Spectral Clustering은 메모리를 많이 쓰므로 샘플링 필수 (최대 500개)
     limit = 500
     if n_samples > limit:
         indices = np.random.choice(n_samples, limit, replace=False)
@@ -96,35 +96,45 @@ def plot_tsne(dataset_name, root_path):
         y = y[indices]
         n_samples = limit
         
-    # (Samples, Time, Channel) -> (Samples, Features) 평탄화
+    # 데이터 평탄화 (Samples, Features)
     for i in range(n_samples):
         row_data = np.concatenate([X_df.iloc[i, c].to_numpy() for c in range(X_df.shape[1])])
         X_flattened.append(row_data)
     X_flattened = np.array(X_flattened)
 
     # -----------------------------------------------------
-    # [추가됨] RI, NMI 계산을 위한 K-Means 클러스터링
+    # Clustering 1: K-Means
     # -----------------------------------------------------
-    n_classes = len(np.unique(y)) # 실제 클래스 개수 파악
+    n_classes = len(np.unique(y))
+    
     kmeans = KMeans(n_clusters=n_classes, random_state=42, n_init=10)
-    y_pred = kmeans.fit_predict(X_flattened) # 원본 특징으로 클러스터링 수행
+    y_pred_kmeans = kmeans.fit_predict(X_flattened)
+    
+    ri_k = rand_score(y, y_pred_kmeans)
+    nmi_k = normalized_mutual_info_score(y, y_pred_kmeans)
 
-    ri_score = rand_score(y, y_pred)
-    nmi_score = normalized_mutual_info_score(y, y_pred)
+    # -----------------------------------------------------
+    # Clustering 2: Spectral Clustering (New!)
+    # -----------------------------------------------------
+    # affinity='nearest_neighbors'가 고차원 데이터에서 보통 더 안정적입니다.
+    spectral = SpectralClustering(n_clusters=n_classes, affinity='nearest_neighbors', random_state=42, n_jobs=-1)
+    y_pred_spectral = spectral.fit_predict(X_flattened)
+    
+    ri_s = rand_score(y, y_pred_spectral)
+    nmi_s = normalized_mutual_info_score(y, y_pred_spectral)
     
     print(f"Metrics for {dataset_name}:")
-    print(f"  > RI  (Rand Index) : {ri_score:.4f}")
-    print(f"  > NMI (Norm MI)    : {nmi_score:.4f}")
-    # -----------------------------------------------------
+    print(f"  [K-Means]  RI: {ri_k:.4f}, NMI: {nmi_k:.4f}")
+    print(f"  [Spectral] RI: {ri_s:.4f}, NMI: {nmi_s:.4f}")
 
-    # t-SNE 실행 (시각화용)
-    print("... t-SNE 변환 중 ...")
+    # -----------------------------------------------------
+    # t-SNE 시각화
+    # -----------------------------------------------------
     tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, n_samples-1))
     X_embedded = tsne.fit_transform(X_flattened)
 
-    # 시각화 (Scatter Plot)
     df_plot = pd.DataFrame(X_embedded, columns=['x', 'y'])
-    df_plot['class'] = y
+    df_plot['class'] = y # 색상은 실제 정답(Ground Truth)으로 표시
 
     plt.figure(figsize=(10, 8))
     unique_classes = np.unique(y)
@@ -132,8 +142,12 @@ def plot_tsne(dataset_name, root_path):
         subset = df_plot[df_plot['class'] == label]
         plt.scatter(subset['x'], subset['y'], label=label, alpha=0.7, s=40)
 
-    # 제목에 점수 표시
-    plt.title(f'{dataset_name}\nRI: {ri_score:.4f}, NMI: {nmi_score:.4f}', fontsize=14)
+    # 제목에 두 모델의 점수를 모두 표시
+    title_str = (f"{dataset_name} Visualization\n"
+                 f"K-Means -> RI: {ri_k:.4f}, NMI: {nmi_k:.4f}\n"
+                 f"Spectral -> RI: {ri_s:.4f}, NMI: {nmi_s:.4f}")
+    
+    plt.title(title_str, fontsize=13)
     plt.xlabel("Component 1")
     plt.ylabel("Component 2")
     plt.legend(title="Class", bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -143,11 +157,8 @@ def plot_tsne(dataset_name, root_path):
     save_name = f"tsne_{dataset_name}.png"
     plt.savefig(save_name)
     plt.close()
-    print(f" -> {save_name} 저장 완료 (이미지 제목에 점수 포함됨)")
+    print(f" -> {save_name} 저장 완료")
 
-# ---------------------------------------------------------
-# 메인 실행부
-# ---------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, required=True, choices=['loss', 'data', 'tsne'], help='loss / data / tsne')

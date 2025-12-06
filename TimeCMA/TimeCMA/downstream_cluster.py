@@ -1,0 +1,417 @@
+import torch
+from torch import optim
+import numpy as np
+import argparse
+import time
+import os
+import random
+from torch.utils.data import DataLoader
+from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom
+from models.TimeCMA import Dual
+import tensorflow as tf
+from sklearn.cluster import KMeans
+from sklearn.metrics import rand_score, normalized_mutual_info_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+import warnings
+
+warnings.filterwarnings('ignore')
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", type=str, default="cuda:0", help="")
+    parser.add_argument("--data_path", type=str, default="ETTh1", help="data path")
+    parser.add_argument("--channel", type=int, default=64, help="number of features")
+    parser.add_argument("--num_nodes", type=int, default=7, help="number of nodes")
+    parser.add_argument("--seq_len", type=int, default=96, help="seq_len")
+    parser.add_argument("--pred_len", type=int, default=192, help="out_len")
+    parser.add_argument("--batch_size", type=int, default=256, help="batch size")
+    parser.add_argument("--dropout_n", type=float, default=0.7, help="dropout rate of neural network layers")
+    parser.add_argument("--d_llm", type=int, default=768, help="hidden dimensions")
+    parser.add_argument("--e_layer", type=int, default=1, help="layers of transformer encoder")
+    parser.add_argument("--d_layer", type=int, default=2, help="layers of transformer decoder")
+    parser.add_argument("--head", type=int, default=8, help="heads of attention")
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--model_name", type=str, default="gpt2", help="llm")
+    parser.add_argument('--seed', type=int, default=2024, help='random seed')
+    parser.add_argument("--n_classes", type=int, default=4, 
+                        help="number of target classes/labels for clustering")
+    parser.add_argument("--clustering_method", type=str, default="kmeans",
+                        choices=["kmeans", "spectral", "spectral_sklearn"],
+                        help="clustering method to use")
+    parser.add_argument("--feature_type", type=str, default="latent",
+                        choices=["latent", "embedding", "raw"],
+                        help="type of features to use for clustering")
+    parser.add_argument("--checkpoint", type=str, required=True, help="path to model checkpoint")
+    parser.add_argument("--output_dir", type=str, default="./Results/clustering/",
+                        help="output directory for clustering results")
+    parser.add_argument("--visualize", default=True, action="store_true", help="visualize clustering results")
+
+    return parser.parse_args()
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def extract_features(model, data_loader, device, feature_type="latent"):
+    model.eval()
+    features_list = []
+    labels_list = []
+
+    with torch.no_grad():
+        for batch_x, batch_y, batch_x_mark, batch_y_mark, embeddings in data_loader:
+            batch_x = batch_x.float().to(device)
+            batch_x_mark = batch_x_mark.float().to(device)
+            embeddings = embeddings.float().to(device)
+
+            if feature_type == "raw":
+                normalized_data = model.normalize_layers(batch_x, 'norm')
+                features = normalized_data.reshape(normalized_data.shape[0], -1) 
+            elif feature_type == "embedding":
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                features = embeddings_squeezed.reshape(embeddings_squeezed.shape[0], -1) 
+            elif feature_type == "latent":
+                input_data = model.normalize_layers(batch_x, 'norm')
+                input_data = input_data.permute(0, 2, 1) 
+                input_data = model.length_to_feature(input_data) 
+                embeddings_squeezed = embeddings.squeeze(-1) 
+                embeddings_squeezed = embeddings_squeezed.permute(0, 2, 1) 
+                enc_out = model.ts_encoder(input_data) 
+                enc_out = enc_out.permute(0, 2, 1) 
+                prompt_enc = model.prompt_encoder(embeddings_squeezed) 
+                prompt_enc = prompt_enc.permute(0, 2, 1) 
+                cross_out = model.cross(enc_out, prompt_enc, prompt_enc) 
+                features = cross_out.reshape(cross_out.shape[0], -1) 
+
+            features_list.append(features.cpu().numpy())
+            labels_list.append(batch_y.cpu().numpy())
+
+    all_features = np.concatenate(features_list, axis=0)
+    all_labels = np.concatenate(labels_list, axis=0)
+
+    return all_features, all_labels
+
+def spectral_clustering_tf(features, n_clusters, gamma=None, random_state=42):
+    
+    if features.ndim != 2:
+        raise ValueError("features should be a 2D array")
+
+    physical_devices = tf.config.list_physical_devices()
+    if any(device.device_type == 'GPU' for device in physical_devices):
+        try:
+            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        except:
+            pass
+
+    features_tf = tf.convert_to_tensor(features, dtype=tf.float32)
+    num_samples = tf.shape(features_tf)[0]
+
+    squared_norms = tf.reduce_sum(tf.square(features_tf), axis=1, keepdims=True)
+    pairwise_sq_dists = squared_norms - 2.0 * tf.linalg.matmul(features_tf, features_tf, transpose_b=True) + tf.transpose(squared_norms)
+    pairwise_sq_dists = tf.maximum(pairwise_sq_dists, 0.0)
+
+    if gamma is None:
+        mean_distance = tf.reduce_mean(pairwise_sq_dists)
+        gamma = tf.math.sqrt(tf.maximum(mean_distance, 1e-8))
+    gamma = tf.convert_to_tensor(gamma, dtype=tf.float32)
+
+    affinity = tf.exp(-pairwise_sq_dists / (2.0 * tf.square(gamma) + 1e-8))
+    affinity = tf.linalg.set_diag(affinity, tf.zeros([num_samples], dtype=tf.float32))
+
+    degree = tf.reduce_sum(affinity, axis=1)
+    degree_safe = tf.where(degree > 1e-8, degree, tf.ones_like(degree) * 1e-8)
+    laplacian = tf.linalg.diag(degree_safe) - affinity
+
+    degree_inv_sqrt = tf.linalg.diag(tf.math.rsqrt(degree_safe))
+    normalized_laplacian = tf.linalg.matmul(tf.linalg.matmul(degree_inv_sqrt, laplacian), degree_inv_sqrt)
+
+    eigenvalues, eigenvectors = tf.linalg.eigh(normalized_laplacian)
+    smallest_indices = tf.argsort(eigenvalues)[:n_clusters]
+    spectral_embeddings = tf.gather(eigenvectors, smallest_indices, axis=1)
+    spectral_embeddings = tf.math.l2_normalize(spectral_embeddings, axis=1)
+
+    spectral_embeddings_np = spectral_embeddings.numpy()
+    kmeans_model = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    cluster_labels = kmeans_model.fit_predict(spectral_embeddings_np)
+
+    return cluster_labels, kmeans_model
+
+def perform_clustering(features, method="kmeans", n_clusters=2):
+    """
+    Perform clustering on the extracted features
+    """
+    if method == "kmeans":
+        clustering_model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        cluster_labels = clustering_model.fit_predict(features)
+    elif method == "spectral":
+        cluster_labels, clustering_model = spectral_clustering_tf(
+            features,
+            n_clusters=n_clusters,
+            random_state=42
+        )
+    elif method == "spectral_sklearn":
+        from sklearn.cluster import SpectralClustering
+        clustering_model = SpectralClustering(
+            n_clusters=n_clusters,
+            affinity='rbf',
+            random_state=42,
+            assign_labels='kmeans'
+        )
+        cluster_labels = clustering_model.fit_predict(features)
+    else:
+        raise ValueError(f"Unknown clustering method: {method}")
+
+    return cluster_labels, clustering_model
+
+def evaluate_clustering(features, cluster_labels, true_labels=None):
+    """
+    Evaluate clustering quality using various metrics
+    """
+    valid_mask = cluster_labels != -1
+    features_valid = features[valid_mask]
+    labels_valid = cluster_labels[valid_mask]
+
+    if len(np.unique(labels_valid)) < 2:
+        print("Warning: Only one cluster found. Cannot compute metrics.")
+        return {}
+
+    metrics = {}
+
+    if true_labels is not None:
+        true_labels_valid = true_labels[valid_mask]
+
+        if true_labels_valid.ndim > 1:
+            print("Warning: true_labels is multi-dimensional. Converting to 1D labels for RI/NMI calculation.")
+            true_labels_valid = np.mean(true_labels_valid.reshape(true_labels_valid.shape[0], -1), axis=1).astype(int)
+        
+        elif not np.issubdtype(true_labels_valid.dtype, np.integer):
+            print(f"Warning: true_labels are not integers (dtype: {true_labels_valid.dtype}). Casting to int.")
+            true_labels_valid = true_labels_valid.astype(int)
+
+        try:
+            metrics['rand_score'] = rand_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute rand_score: {e}")
+            metrics['rand_score'] = None
+
+        try:
+            metrics['normalized_mutual_info_score'] = normalized_mutual_info_score(true_labels_valid, labels_valid)
+        except Exception as e:
+            print(f"Could not compute normalized_mutual_info_score: {e}")
+            metrics['normalized_mutual_info_score'] = None
+
+    metrics['n_clusters'] = len(np.unique(labels_valid))
+    metrics['n_samples'] = len(features_valid)
+
+    if valid_mask.sum() < len(cluster_labels):
+        metrics['n_noise'] = len(cluster_labels) - valid_mask.sum()
+
+    return metrics
+
+
+def visualize_clusters(features, cluster_labels, output_path, method="tsne", metrics=None):
+
+    plt.figure(figsize=(12, 8))
+
+    if method == "tsne":
+        if features.shape[0] > 5000:
+            indices = np.random.choice(features.shape[0], 5000, replace=False)
+            features_reduced = features[indices]
+            labels_reduced = cluster_labels[indices]
+        else:
+            features_reduced = features
+            labels_reduced = cluster_labels
+        reducer = TSNE(n_components=2, random_state=42, perplexity=30)
+        features_2d = reducer.fit_transform(features_reduced)
+    elif method == "pca":
+        reducer = PCA(n_components=2, random_state=42)
+        features_2d = reducer.fit_transform(features)
+        labels_reduced = cluster_labels
+
+    scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1],
+                          c=labels_reduced, cmap='viridis',
+                          alpha=0.6, s=50)
+    plt.colorbar(scatter, label='Cluster')
+    
+    title_str = f'Clustering Visualization ({method.upper()})'
+    if metrics:
+        ri_score = metrics.get('rand_score')
+        nmi_score = metrics.get('normalized_mutual_info_score')
+        ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+        nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+        title_str += f'\n({ri_str}, {nmi_str})'
+    plt.title(title_str)
+
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"Visualization saved to {output_path}")
+
+
+def main():
+    args = parse_args()
+    set_seed(args.seed)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    print("Loading model...")
+    model = Dual(
+        device=device, channel=args.channel, num_nodes=args.num_nodes, seq_len=args.seq_len,
+        pred_len=args.pred_len, dropout_n=args.dropout_n, d_llm=args.d_llm, e_layer=args.e_layer,
+        d_layer=args.d_layer, head=args.head
+    )
+
+    if os.path.exists(args.checkpoint):
+        checkpoint = torch.load(args.checkpoint, map_location=device)
+        state_dict = checkpoint['model_state_dict'] if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint else \
+                     checkpoint['state_dict'] if isinstance(checkpoint, dict) and 'state_dict' in checkpoint else checkpoint
+        model.load_state_dict(state_dict)
+        print(f"Loaded checkpoint from {args.checkpoint}")
+    else:
+        print(f"Error: Checkpoint not found at {args.checkpoint}")
+        return
+
+    model.to(device)
+    model.eval()
+
+    print("Loading data...")
+    # 데이터 로더 클래스 선택 로직 단순화
+    if args.data_path.startswith("ETTh"):
+        dataset_class = Dataset_ETT_hour
+    elif args.data_path.startswith("ETTm"):
+        dataset_class = Dataset_ETT_minute
+    else:
+        dataset_class = Dataset_Custom
+        
+    test_dataset = dataset_class(
+        flag='test', 
+        size=[args.seq_len, 0, args.pred_len],
+        data_path=args.data_path, 
+        model_name=args.model_name
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=args.batch_size, shuffle=False,
+        num_workers=args.num_workers, drop_last=False
+    )
+
+    print(f"Extracting {args.feature_type} features...")
+    # 1D 정수형 레이블이어야 합니다.
+    features, labels = extract_features(model, test_loader, device, args.feature_type)
+    print(f"Extracted features shape: {features.shape}")
+    print(f"Extracted labels shape: {labels.shape}") # 레이블 형태 확인
+
+    print(f"Performing {args.clustering_method} clustering...")
+    # n_clusters 대신 args.n_classes를 사용합니다.
+    start = time.time()
+    cluster_labels, clustering_model = perform_clustering(
+        features,
+        method=args.clustering_method,
+        n_clusters=args.n_classes 
+    )
+    end = time.time()
+    print(f"Clustering completed in {end - start:.2f} seconds.")
+
+    print("Evaluating clustering quality...")
+    metrics = evaluate_clustering(features, cluster_labels, true_labels=labels)
+
+    print("\n" + "=" * 50)
+    print("Clustering Results")
+    print("=" * 50)
+    print(f"Method: {args.clustering_method}")
+    print(f"Feature type: {args.feature_type}")
+    print(f"Number of target classes: {args.n_classes}") # n_clusters 대신 n_classes 출력
+    print(f"Number of clusters found: {metrics.get('n_clusters', 'N/A')}")
+    print(f"Number of samples: {metrics.get('n_samples', 'N/A')}")
+    if 'n_noise' in metrics:
+        print(f"Number of noise points: {metrics['n_noise']}")
+    print(f"\nQuality Metrics:")
+    # 내부 평가 지표(Silhouette 등) 제거
+    print(f"  Rand Index: {metrics.get('rand_score', 'N/A'):.4f}" if metrics.get('rand_score') is not None else "  Rand Index: N/A")
+    print(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A'):.4f}" if metrics.get('normalized_mutual_info_score') is not None else "  Normalized Mutual Information: N/A")
+    print("=" * 50)
+
+    result_file = os.path.join(
+        args.output_dir,
+        f"{args.data_path}_{args.clustering_method}_{args.feature_type}_results.txt"
+    )
+    with open(result_file, 'w') as f:
+        f.write("Clustering Results\n")
+        f.write("=" * 50 + "\n")
+        f.write(f"Clustering completed in {end - start:.2f} seconds.\n")
+        f.write(f"Dataset: {args.data_path}\n")
+        f.write(f"Method: {args.clustering_method}\n")
+        f.write(f"Feature type: {args.feature_type}\n")
+        f.write(f"Target number of classes: {args.n_classes}\n")
+        f.write(f"Number of clusters found: {metrics.get('n_clusters', 'N/A')}\n")
+        f.write(f"Number of samples: {metrics.get('n_samples', 'N/A')}\n")
+        if 'n_noise' in metrics:
+            f.write(f"Number of noise points: {metrics['n_noise']}\n")
+        f.write(f"\nQuality Metrics:\n")
+        # 내부 평가 지표 제거
+        f.write(f"  Rand Index: {metrics.get('rand_score', 'N/A')}\n")
+        f.write(f"  Normalized Mutual Information: {metrics.get('normalized_mutual_info_score', 'N/A')}\n")
+
+    print(f"\nResults saved to {result_file}")
+
+    labels_file = os.path.join(
+        args.output_dir,
+        f"{args.data_path}_{args.clustering_method}_{args.feature_type}_labels.npy"
+    )
+    np.save(labels_file, cluster_labels)
+    print(f"Cluster labels saved to {labels_file}")
+
+    if args.visualize:
+        print("\nGenerating visualizations...")
+        
+        vis_path_tsne = os.path.join(
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_tsne.png"
+        )
+        visualize_clusters(features, cluster_labels, vis_path_tsne, method="tsne", metrics=metrics)
+
+        vis_path_pca = os.path.join(
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_pca.png"
+        )
+        visualize_clusters(features, cluster_labels, vis_path_pca, method="pca", metrics=metrics)
+
+        plt.figure(figsize=(10, 6))
+        unique, counts = np.unique(cluster_labels, return_counts=True)
+        plt.bar(unique, counts)
+        plt.xlabel('Cluster ID')
+        plt.ylabel('Number of Samples')
+        
+        title_str = 'Cluster Size Distribution'
+        if metrics:
+            ri_score = metrics.get('rand_score')
+            nmi_score = metrics.get('normalized_mutual_info_score')
+            ri_str = f"RI: {ri_score:.4f}" if ri_score is not None else "RI: N/A"
+            nmi_str = f"NMI: {nmi_score:.4f}" if nmi_score is not None else "NMI: N/A"
+            title_str += f'\n({ri_str}, {nmi_str})'
+        plt.title(title_str)
+        
+        plt.tight_layout()
+        dist_path = os.path.join(
+            args.output_dir, f"{args.data_path}_{args.clustering_method}_{args.feature_type}_distribution.png"
+        )
+        plt.savefig(dist_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"Distribution plot saved to {dist_path}")
+
+    print("\nClustering analysis completed!")
+
+
+if __name__ == "__main__":
+    main()

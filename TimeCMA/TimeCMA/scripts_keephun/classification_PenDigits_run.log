@@ -1,0 +1,26 @@
+nohup: ignoring input
+==================================================
+Start Classification: AtrialFibrillation_m (SVM)
+Date: 2025. 12. 03. (수) 23:59:46 KST
+==================================================
+Using device: cuda:1
+Loading model from /hdd/intern/keephun/TimeCMA/logs/2025-12-02-16:50:41-/PenDigits_m/96_64_1_2_0.0001_0.7_2024/best_model.pth...
+Loading Datasets from /hdd/intern/keephun/TimeCMA/sfs-common/dataset/ ...
+Extracting features (latent)...
+Initializing Classifier (svm)...
+Calculating CV Accuracy...
+Training finished in 1321.56 seconds.
+
+==================================================
+Classification Results: PenDigits_m
+==================================================
+Accuracy      : 0.7225
+F1 (Macro)    : 0.7216
+F1 (Weighted) : 0.7221
+CV Accuracy   : 0.7551
+Classes       : 10 [0 1 2 3 4 5 6 7 8 9]
+==================================================
+Results saved to ./Results/classification_comparison/PenDigits_m/PenDigits_m/svm
+==================================================
+Process Finished.
+==================================================

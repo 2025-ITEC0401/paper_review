@@ -10,6 +10,7 @@ from data_provider.data_loader_emb import Dataset_ETT_hour, Dataset_ETT_minute, 
 from model.TimeKD import Dual
 from utils.kd_loss import KDLoss
 from utils.metrics import MSE, MAE, metric
+from sklearn.metrics import r2_score
 import faulthandler
 faulthandler.enable()
 torch.cuda.empty_cache()
@@ -336,7 +337,7 @@ def main():
     # Output consumption
     print("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
     print("Average Validation Time: {:.4f} secs".format(np.mean(val_time)))
-
+    
     # Test
     print("Training ends")
     print("The epoch of the best result：", bestid)
@@ -372,10 +373,15 @@ def main():
     
 
     test_end_time = time.time()
+    print("---------------------------------------------------------\n")
     print(f"Test time (total): {test_end_time - test_start_time:.4f} seconds")
 
-    log = "On average horizons, Test MSE: {:.4f}, Test MAE: {:.4f}"
-    print(log.format(np.mean(amse), np.mean(amae)))
+    preds_np = test_pre.cpu().numpy().flatten()
+    reals_np = test_real.cpu().numpy().flatten()
+    final_r2 = r2_score(reals_np, preds_np)
+
+    log = "On average horizons, Test MSE: {:.4f}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test R^2: {:.4f}"
+    print(log.format(np.mean(amse), np.mean(amae), np.sqrt(np.mean(amse)), final_r2))
     print("Average Testing Time: {:.4f} secs".format(np.mean(test_time)))
 
 if __name__ == "__main__":

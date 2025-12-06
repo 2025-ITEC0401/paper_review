@@ -23,9 +23,9 @@ for data_path in "${data_paths[@]}"; do
           for dropout_n in "${dropout_ns[@]}"; do
             for e_layer in "${e_layers[@]}"; do
               for batch_size in "${batch_sizes[@]}"; do
-                log_path="./Results/Fcst/${data_path}/"
+                log_path="../Result_csv/"
                 mkdir -p $log_path
-                log_file="${log_path}i${seq_len}_o${pred_len}_lr${learning_rate}_c${channel}_el${e_layer}_dn${dropout_n}_bs${batch_size}_e${epochs}.log"
+                log_file="${log_path}${data_path}_o${pred_len}_forecasting_lr${learning_rate}_bs${batch_size}_e${epochs}_summary.txt"
                 /hdd/conda_envs/envs/timeKD/bin/python3 forecasting.py \
                   --root_path "../data" \
                   --target "OT1" \
