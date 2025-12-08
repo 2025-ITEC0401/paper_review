@@ -1,0 +1,1 @@
+{'ts2vec': {'acc': 0.7509, 'precision': 0.9991, 'recall': 0.719, 'f1': 0.8362, 'roc_auc': 0.5109}, 'isolation_forest': {'acc': 0.1156, 'precision': 0.0, 'recall': 0.0, 'f1': 0.0, 'roc_auc': 0.6054}, 'one_class_svm': {'acc': 0.1297, 'precision': 0.8421, 'recall': 0.0196, 'f1': 0.0383, 'roc_auc': 0.5768}, 'infer_time': 21.6021}

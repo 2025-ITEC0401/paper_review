@@ -1,0 +1,28 @@
+============================================================
+Evaluation Script
+============================================================
+Dataset: PEMS-SF
+Model path: result/PEMS-SF__UEA_20251109_175317/model_best.pkl
+Output directory: result/PEMS-SF__UEA_20251109_175317/eval_results
+Arguments: Namespace(dataset='PEMS-SF', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.2', missing_types='random', model_path='result/PEMS-SF__UEA_20251109_175317/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='imputation')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Imputation Evaluation...
+========================================
+
+======================================================================
+Imputation Evaluation Results
+======================================================================
+Mask Ratio   MSE                  RMSE            MAE                 
+----------------------------------------------------------------------
+0.2          0.790128±0.0004   0.888891       0.613531±0.0001
+----------------------------------------------------------------------
+Average      0.790128             0.888891       0.613531
+======================================================================
+
+Evaluation time: 8:44:35.230755
+
+Finished.
