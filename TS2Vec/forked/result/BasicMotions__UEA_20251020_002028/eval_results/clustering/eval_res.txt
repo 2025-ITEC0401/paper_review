@@ -1,0 +1,1 @@
+{'kmeans': {'acc': 1.0, 'ri': 1.0, 'nmi': 1.0}, 'spectral': {'acc': 1.0, 'ri': 1.0, 'nmi': 1.0}}
