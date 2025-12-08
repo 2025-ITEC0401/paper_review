@@ -1,0 +1,31 @@
+============================================================
+Evaluation Script
+============================================================
+Dataset: PenDigits
+Model path: result/PenDigits__UEA_20251109_175457/model_best.pkl
+Output directory: result/PenDigits__UEA_20251109_175457/eval_results
+Arguments: Namespace(dataset='PenDigits', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.1,0.2,0.3,0.4,0.5', missing_types='random,block', model_path='result/PenDigits__UEA_20251109_175457/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='classification,clustering')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Classification Evaluation...
+========================================
+Classification evaluation results:
+  acc: 0.9743
+  f1_macro: 0.9743
+  f1_weighted: 0.9743
+  cv_acc: 0.9929
+  n_classes: 10
+  auprc: 0.9913
+
+========================================
+Running Clustering Evaluation...
+========================================
+Clustering evaluation results:
+{'kmeans': {'acc': 0.8379073756432247, 'ri': 0.9477287810036635, 'nmi': 0.8022002830219015}, 'spectral': {'acc': 0.8281875357347055, 'ri': 0.9390479759421332, 'nmi': 0.8125118185149861}}
+
+Evaluation time: 0:01:32.768646
+
+Finished.
