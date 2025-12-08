@@ -1,0 +1,93 @@
+============================================================
+Evaluation Script
+============================================================
+Dataset: Epilepsy
+Model path: result/Epilepsy__UEA_20251020_002028/model_best.pkl
+Output directory: result/Epilepsy__UEA_20251020_002028/eval_results
+Arguments: Namespace(dataset='Epilepsy', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, model_path='result/Epilepsy__UEA_20251020_002028/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='classification,clustering')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Classification Evaluation...
+========================================
+Classification evaluation results:
+  acc: 0.9783
+  f1_macro: 0.9781
+  f1_weighted: 0.9783
+  cv_acc: 1.0000
+  n_classes: 4
+  auprc: 0.9951
+
+========================================
+Running Clustering Evaluation...
+========================================
+Clustering evaluation results:
+{'kmeans': {'acc': 0.8985507246376812, 'ri': 0.9124087591240876, 'nmi': 0.8062938057892896}, 'spectral': {'acc': 0.5869565217391305, 'ri': 0.7334179625515709, 'nmi': 0.5658353723342547}}
+
+Evaluation time: 0:00:13.763186
+
+Finished.
+============================================================
+Evaluation Script
+============================================================
+Dataset: Epilepsy
+Model path: result/Epilepsy__UEA_20251020_002028/model_best.pkl
+Output directory: result/Epilepsy__UEA_20251020_002028/eval_results
+Arguments: Namespace(dataset='Epilepsy', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.1,0.2,0.3,0.4,0.5', missing_types='random,block', model_path='result/Epilepsy__UEA_20251020_002028/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='classification,clustering')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Classification Evaluation...
+========================================
+Classification evaluation results:
+  acc: 0.9783
+  f1_macro: 0.9781
+  f1_weighted: 0.9783
+  cv_acc: 1.0000
+  n_classes: 4
+  auprc: 0.9951
+
+========================================
+Running Clustering Evaluation...
+========================================
+Clustering evaluation results:
+{'kmeans': {'acc': 0.8985507246376812, 'ri': 0.9124087591240876, 'nmi': 0.8062938057892896}, 'spectral': {'acc': 0.5869565217391305, 'ri': 0.7334179625515709, 'nmi': 0.5658353723342547}}
+
+Evaluation time: 0:00:02.185961
+
+Finished.
+============================================================
+Evaluation Script
+============================================================
+Dataset: Epilepsy
+Model path: result/Epilepsy__UEA_20251020_002028/model_best.pkl
+Output directory: result/Epilepsy__UEA_20251020_002028/eval_results
+Arguments: Namespace(dataset='Epilepsy', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.1,0.2,0.3,0.4,0.5', missing_types='random,block', model_path='result/Epilepsy__UEA_20251020_002028/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='classification,clustering')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Classification Evaluation...
+========================================
+Classification evaluation results:
+  acc: 0.9783
+  f1_macro: 0.9781
+  f1_weighted: 0.9783
+  cv_acc: 1.0000
+  n_classes: 4
+  auprc: 0.9951
+
+========================================
+Running Clustering Evaluation...
+========================================
+Clustering evaluation results:
+{'kmeans': {'acc': 0.8985507246376812, 'ri': 0.9124087591240876, 'nmi': 0.8062938057892896}, 'spectral': {'acc': 0.5869565217391305, 'ri': 0.7334179625515709, 'nmi': 0.5658353723342547}}
+
+Evaluation time: 0:00:02.450555
+
+Finished.
