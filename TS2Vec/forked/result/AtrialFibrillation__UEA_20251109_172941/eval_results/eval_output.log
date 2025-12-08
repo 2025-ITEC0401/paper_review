@@ -1,0 +1,28 @@
+============================================================
+Evaluation Script
+============================================================
+Dataset: AtrialFibrillation
+Model path: result/AtrialFibrillation__UEA_20251109_172941/model_best.pkl
+Output directory: result/AtrialFibrillation__UEA_20251109_172941/eval_results
+Arguments: Namespace(dataset='AtrialFibrillation', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.2', missing_types='random', model_path='result/AtrialFibrillation__UEA_20251109_172941/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='imputation')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Imputation Evaluation...
+========================================
+
+======================================================================
+Imputation Evaluation Results
+======================================================================
+Mask Ratio   MSE                  RMSE            MAE                 
+----------------------------------------------------------------------
+0.2          0.498983±0.0556   0.706387       0.308779±0.0105
+----------------------------------------------------------------------
+Average      0.498983             0.706387       0.308779
+======================================================================
+
+Evaluation time: 0:00:06.378859
+
+Finished.
