@@ -1,0 +1,25 @@
+============================================================
+Evaluation Script
+============================================================
+Dataset: StandWalkJump
+Model path: result/StandWalkJump__UEA_20251109_173159/model_best.pkl
+Output directory: result/StandWalkJump__UEA_20251109_173159/eval_results
+Arguments: Namespace(dataset='StandWalkJump', eval_protocol='svm', gpu=0, loader='UEA', max_threads=None, missing_ratios='0.1,0.2,0.3,0.4,0.5', missing_types='random,block', model_path='result/StandWalkJump__UEA_20251109_173159/model_best.pkl', output_dir=None, repr_dims=320, seed=None, tasks='classification')
+============================================================
+Loading data... done
+Loading model... done
+
+========================================
+Running Classification Evaluation...
+========================================
+Classification evaluation results:
+  acc: 0.5333
+  f1_macro: 0.5004
+  f1_weighted: 0.5004
+  cv_acc: 0.5000
+  n_classes: 3
+  auprc: 0.4366
+
+Evaluation time: 0:00:00.474462
+
+Finished.
